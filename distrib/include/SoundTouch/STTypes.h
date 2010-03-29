@@ -8,10 +8,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2010/02/10 04:37:26 $
-// File revision : $Revision: 1.1 $
+// Last changed  : $Date: 2010/03/12 23:30:10 $
+// File revision : $Revision: 1.2 $
 //
-// $Id: STTypes.h,v 1.1 2010/02/10 04:37:26 Duncan Exp $
+// $Id: STTypes.h,v 1.2 2010/03/12 23:30:10 Duncan Exp $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -85,9 +85,9 @@ namespace soundtouch
     //#define INTEGER_SAMPLES     1    //< 16bit integer samples
     #define FLOAT_SAMPLES       1    //< 32bit float samples
  
- #endif
+#endif
 
-    #if (WIN32 || __i386__ || __x86_64__)
+    #if defined(WIN32) || defined(__i386__) || defined(_AMD64_)
         /// Define this to allow X86-specific assembler/intrinsic optimizations. 
         /// Notice that library contains also usual C++ versions of each of these
         /// these routines, so if you're having difficulties getting the optimized 
@@ -128,8 +128,8 @@ namespace soundtouch
         typedef double LONG_SAMPLETYPE;
 
         #ifdef ALLOW_X86_OPTIMIZATIONS
-                // Allow 3DNow! and SSE optimizations
-            #if WIN32
+            // Allow 3DNow! and SSE optimizations
+            #if defined(WIN32) || defined(WIN64)
                 #define ALLOW_3DNOW     1
             #endif
 

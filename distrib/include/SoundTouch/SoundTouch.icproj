@@ -3,12 +3,26 @@
 	ProjectType="Intel C++ Project"
 	Version="11.1"
 	Name="SoundTouch"
-	ProjectGUID="{A674703E-13DC-4D95-84C3-F56157E44DDF}"
+	ProjectGUID="{52BB5AAD-BEE9-4D4C-AD4C-8257C2A2C954}"
 	VCNestedProjectGUID="{EED45D9C-9C49-4AA5-9239-8E4D95206989}"
 	VCNestedProjectFileName="SoundTouch.vcproj">
 	<Configurations>
 		<Configuration
-			Name="Release|Win32">
+			Name="Release|x64">
+			<Tool
+				Name="GeneralTool"
+				InterproceduralOptimization="true"/>
+			<Tool
+				Name="CppCmplrTool"
+				GlobalOptimizations="true"
+				OptimizeForWindowsApplication="true"
+				EnableEnhancedInstructionSet="1000"
+				FloatingPointModel="1000"
+				FloatingPointSpeculation="0"
+				UseIntelOptimizedHeaders="true"/>
+		</Configuration>
+		<Configuration
+			Name="Compat|x64">
 			<Tool
 				Name="GeneralTool"
 				InterproceduralOptimization="true"/>
@@ -16,15 +30,9 @@
 				Name="CppCmplrTool"
 				Optimization="1000"
 				GlobalOptimizations="true"
-				Parallelization="true"
-				UseIntelOptimizedHeaders="true"
-				ProfileGuidedOptimization="0"/>
-		</Configuration>
-		<Configuration
-			Name="Release|x64">
-			<Tool
-				Name="GeneralTool"
-				InterproceduralOptimization="true"/>
+				OptimizeForWindowsApplication="false"
+				FloatingPointSpeculation="0"
+				UseIntelOptimizedHeaders="true"/>
 		</Configuration>
 	</Configurations>
 	<Files/>

@@ -55,6 +55,7 @@
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
+				EnableEnhancedInstructionSet="0"
 				RuntimeTypeInfo="false"
 				PrecompiledHeaderFile=".\Release/SoundTouch.pch"
 				WarningLevel="3"
@@ -124,15 +125,20 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				InlineFunctionExpansion="0"
+				AdditionalOptions="/QaxSSE2,SSE3,SSSE3,SSE4.1,SSE4.2 /Oa"
+				Optimization="3"
+				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="false"
 				EnableFiberSafeOptimizations="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories=""
+				PreprocessorDefinitions="WIN64;_WIN64;_AMD64_;__x86_64__ ;ARCH_IS_64BIT;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
+				EnableEnhancedInstructionSet="2"
+				FloatingPointModel="0"
 				RuntimeTypeInfo="false"
 				PrecompiledHeaderFile=".\Release/SoundTouch.pch"
 				WarningLevel="3"
@@ -152,7 +158,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile=".\..\..\..\src\Win32\Release\SoundTouch.lib"
+				OutputFile=".\..\..\..\src\x64\Release\SoundTouch.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -201,10 +207,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="WIN32;_LIB;_DEBUG;_MBCS;_CRT_SECURE_NO_DEPRECATE;$(NOINHERIT)"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
+				FloatingPointModel="0"
+				PrecompiledHeaderThrough=""
 				PrecompiledHeaderFile=".\Debug/SoundTouch.pch"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -246,8 +254,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(PlatformName)/$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)/$(ConfigurationName)"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -273,15 +281,19 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE"
+				AdditionalIncludeDirectories=""
+				PreprocessorDefinitions="WIN64;_AMD64_;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;ARCH_IS_64BIT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\Debug/SoundTouch.pch"
-				AssemblerOutput="2"
+				RuntimeLibrary="1"
+				EnableEnhancedInstructionSet="2"
+				FloatingPointModel="1"
+				PrecompiledHeaderThrough=""
+				PrecompiledHeaderFile=""
+				AssemblerOutput="0"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				DebugInformationFormat="3"
+				DebugInformationFormat="4"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -296,7 +308,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile=".\..\..\..\src\Win32\Debug\SoundTouch.lib"
+				OutputFile=".\..\..\..\src\x64\Debug\SoundTouch.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -309,6 +321,283 @@
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
 				OutputFile=".\..\..\..\src\Debug/SoundTouch.bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release_compat|Win32"
+			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
+			ConfigurationType="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release_compat|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Compat|Win32"
+			OutputDirectory="$(PlatformName)/$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)/$(ConfigurationName)"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="2"
+				InlineFunctionExpansion="0"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				OmitFramePointers="false"
+				EnableFiberSafeOptimizations="true"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE"
+				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
+				EnableEnhancedInstructionSet="0"
+				RuntimeTypeInfo="false"
+				PrecompiledHeaderFile=".\Release/SoundTouch.pch"
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile=".\..\..\..\src\Win32\Release\SoundTouch.lib"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile=".\..\..\..\src\Release/SoundTouch.bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Compat|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				AdditionalOptions="/Oa /QaxSSE3,SSSE3,SSE4.1,SSE4.2"
+				Optimization="2"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				OmitFramePointers="false"
+				EnableFiberSafeOptimizations="true"
+				AdditionalIncludeDirectories=""
+				PreprocessorDefinitions="WIN64;_WIN64;_AMD64_;__x86_64__ ;ARCH_IS_64BIT;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
+				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
+				EnableEnhancedInstructionSet="2"
+				FloatingPointModel="2"
+				RuntimeTypeInfo="false"
+				PrecompiledHeaderFile=""
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile=".\..\..\..\src\x64\Compat\SoundTouch.lib"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile=".\..\..\..\src\Release/SoundTouch.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -360,6 +649,22 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="AAFilter.cpp"
@@ -390,6 +695,22 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -432,6 +753,22 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="FIFOSampleBuffer.cpp"
@@ -462,6 +799,22 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -504,6 +857,22 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="mmx_optimized.cpp"
@@ -534,6 +903,22 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -580,6 +965,22 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="SoundTouch.cpp"
@@ -610,6 +1011,22 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -652,6 +1069,22 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="TDStretch.cpp"
@@ -682,6 +1115,22 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Compat|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

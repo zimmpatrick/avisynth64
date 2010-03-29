@@ -3,12 +3,24 @@
 	ProjectType="Intel C++ Project"
 	Version="11.1"
 	Name="pfc"
-	ProjectGUID="{8A03AA3C-665D-4974-BC1E-98BD7B8A26AF}"
+	ProjectGUID="{516B44F0-2E66-46CD-A415-C0B2A21F2593}"
 	VCNestedProjectGUID="{59B7CCA3-F23F-43F4-96BC-D20777BF3CAE}"
 	VCNestedProjectFileName="pfc.vcproj">
 	<Configurations>
 		<Configuration
-			Name="Release|Win32">
+			Name="Release|x64">
+			<Tool
+				Name="GeneralTool"
+				InterproceduralOptimization="true"/>
+			<Tool
+				Name="CppCmplrTool"
+				GlobalOptimizations="true"
+				EnableEnhancedInstructionSet="1000"
+				FloatingPointModel="1000"
+				UseIntelOptimizedHeaders="true"/>
+		</Configuration>
+		<Configuration
+			Name="Compat|Win32">
 			<Tool
 				Name="GeneralTool"
 				InterproceduralOptimization="true"/>
@@ -16,18 +28,21 @@
 				Name="CppCmplrTool"
 				Optimization="1000"
 				GlobalOptimizations="true"
-				OptimizeForWindowsApplication="false"
-				FloatingPointModel="1000"
 				GenerateAlternateCodePaths="0"
-				UseProcessorExtensions="7"
-				Parallelization="true"
-				UseIntelOptimizedHeaders="true"
-				EmitDiagnosticsToFile="false"
-				OptimizationDiagnosticLevel="0"
-				EmitOptimizationDiagnosticsToFile="false"
-				LevelOfStaticAnalysis="0"
-				LevelOfParallelAnalysis="0"
-				AnalyzeIncludeFiles="false"/>
+				UseIntelOptimizedHeaders="true"/>
+		</Configuration>
+		<Configuration
+			Name="Compat|x64">
+			<Tool
+				Name="GeneralTool"
+				InterproceduralOptimization="true"/>
+			<Tool
+				Name="CppCmplrTool"
+				Optimization="1000"
+				GlobalOptimizations="true"
+				EnableEnhancedInstructionSet="1000"
+				FloatingPointModel="1000"
+				UseIntelOptimizedHeaders="true"/>
 		</Configuration>
 	</Configurations>
 	<Files/>

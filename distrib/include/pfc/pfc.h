@@ -1,7 +1,7 @@
 #ifndef ___PFC_H___
 #define ___PFC_H___
 
-#ifdef WIN32
+#if defined(WIN32) || defined (WIN64)
 #ifndef STRICT
 #define STRICT
 #endif

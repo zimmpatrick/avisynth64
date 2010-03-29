@@ -12,10 +12,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2010/02/10 19:46:14 $
-// File revision : $Revision: 1.2 $
+// Last changed  : $Date: 2010/03/12 23:30:10 $
+// File revision : $Revision: 1.3 $
 //
-// $Id: cpu_detect_x86_win.cpp,v 1.2 2010/02/10 19:46:14 Duncan Exp $
+// $Id: cpu_detect_x86_win.cpp,v 1.3 2010/03/12 23:30:10 Duncan Exp $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -42,7 +42,7 @@
 
 #include "cpu_detect.h"
 
-#ifndef WIN32
+#if !(defined(WIN64) || defined(WIN32))
 #error wrong platform - this source code file is exclusively for Win32 platform
 #endif
 
@@ -65,6 +65,68 @@ void disableExtensions(uint dwDisableMask)
 
 
 /// Checks which instruction set extensions are supported by the CPU.
+#ifndef _AMD64_
+uint detectCPUextensions(void)
+{
+    uint res = 0;
+
+    if (_dwDisabledISA == 0xffffffff) return 0;
+
+    _asm 
+    {
+        ; check if 'cpuid' instructions is available by toggling eflags bit 21
+        ;
+        xor     esi, esi            ; clear esi = result register
+
+        pushfd                      ; save eflags to stack
+        pop     eax                 ; load eax from stack (with eflags)
+        mov     ecx, eax            ; save the original eflags values to ecx
+        xor     eax, 0x00200000     ; toggle bit 21
+        push    eax                 ; store toggled eflags to stack
+        popfd                       ; load eflags from stack
+        pushfd                      ; save updated eflags to stack
+        pop     eax                 ; load from stack
+        xor     edx, edx            ; clear edx for defaulting no mmx
+        cmp     eax, ecx            ; compare to original eflags values
+        jz      end                 ; jumps to 'end' if cpuid not present
+
+        ; cpuid instruction available, test for presence of mmx instructions 
+        mov     eax, 1
+        cpuid
+        test    edx, 0x00800000
+        jz      end                 ; branch if MMX not available
+
+        or      esi, SUPPORT_MMX    ; otherwise add MMX support bit
+
+        test    edx, 0x02000000
+        jz      test3DNow           ; branch if SSE not available
+
+        or      esi, SUPPORT_SSE    ; otherwise add SSE support bit
+
+    test3DNow:
+        ; test for precense of AMD extensions
+        mov     eax, 0x80000000
+        cpuid
+        cmp     eax, 0x80000000
+        jbe     end                ; branch if no AMD extensions detected
+
+        ; test for precense of 3DNow! extension
+        mov     eax, 0x80000001
+        cpuid
+        test    edx, 0x80000000
+        jz      end                 ; branch if 3DNow! not detected
+
+        or      esi, SUPPORT_3DNOW  ; otherwise add 3DNow support bit
+
+    end:
+
+        mov     res, esi
+    }
+
+    return res & ~_dwDisabledISA;
+}
+
+#else
 uint detectCPUextensions(void)
 {
     uint res = 0;
@@ -127,3 +189,4 @@ uint detectCPUextensions(void)
 
     return res & ~_dwDisabledISA;
 }
+#endif
