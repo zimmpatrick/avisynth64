@@ -11,7 +11,7 @@ namespace SoftWire
 	class Synthesizer
 	{
 	public:
-		Synthesizer(bool x64);
+		Synthesizer(bool x64 = true); // Default to true on X64 platform
 
 		virtual ~Synthesizer();
 

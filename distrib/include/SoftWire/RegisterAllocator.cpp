@@ -18,16 +18,16 @@ namespace SoftWire
 	RegisterAllocator::RegisterAllocator(bool x64) : Assembler(x64)
 	{
 		// Completely eraze allocation state
-		for(int i = 0; i < 16; i++)
+		{for(int i = 0; i < 16; i++)
 		{
 			GPR[i].free();
 			XMM[i].free();
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			MMX[i].free();
-		}
+		}}
 	}
 
 	RegisterAllocator::~RegisterAllocator()
@@ -91,7 +91,7 @@ namespace SoftWire
 		if(ref == 0 && copy) throw Error("Cannot dereference 0");
 
 		// Check if already allocated
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(i == Encoding::ESP || i == Encoding::EBP) continue;
 
@@ -99,7 +99,7 @@ namespace SoftWire
 			{
 				return prioritize32(i);
 			}
-		}
+		}}
 
 		// Check spilled but unused registers
 		if(spillElimination)
@@ -130,7 +130,7 @@ namespace SoftWire
 		}
 
 		// Search for free registers
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(i == Encoding::ESP || i == Encoding::EBP) continue;
 
@@ -138,9 +138,9 @@ namespace SoftWire
 			{
 				return allocate32(i, ref, copy, partial);
 			}
-		}
+		}}
 		
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(i == Encoding::ESP || i == Encoding::EBP) continue;
 
@@ -148,14 +148,14 @@ namespace SoftWire
 			{
 				return allocate32(i, ref, copy, partial);
 			}
-		}
+		}}
 
 		// Need to spill one
 		int candidate = 0;
 		int betterCandidate = -1;
 		unsigned int priority = 0xFFFFFFFF;
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(i == Encoding::ESP || i == Encoding::EBP) continue;
 
@@ -169,7 +169,7 @@ namespace SoftWire
 					betterCandidate = i;
 				}
 			}
-		}
+		}}
 
 		if(betterCandidate != -1)
 		{
@@ -352,13 +352,13 @@ namespace SoftWire
 		if(ref == 0 && copy) throw Error("Cannot dereference 0");
 
 		// Check if already allocated
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(MMX[i].reference == ref)
 			{
 				return prioritize64(i);
 			}
-		}
+		}}
 
 		// Check spilled but unused registers
 		if(spillElimination)
@@ -387,28 +387,28 @@ namespace SoftWire
 		}
 
 		// Search for free registers
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(MMX[i].priority == 0 && MMX[i].spill.priority == 0)
 			{
 				return allocate64(i, ref, copy);
 			}
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(MMX[i].priority == 0)
 			{
 				return allocate64(i, ref, copy);
 			}
-		}
+		}}
 
 		// Need to spill one
 		int candidate = 0;
 		int betterCandidate = -1;
 		unsigned int priority = 0xFFFFFFFF;
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(MMX[i].priority < priority)
 			{
@@ -420,7 +420,7 @@ namespace SoftWire
 					betterCandidate = i;
 				}
 			}
-		}
+		}}
 
 		if(betterCandidate != -1)
 		{
@@ -550,22 +550,22 @@ namespace SoftWire
 
 		if(free && autoEMMS)
 		{
-			for(int i = 0; i < 8; i++)
+			{for(int i = 0; i < 8; i++)
 			{
 				if(MMX[i].priority != 0)
 				{
 					return;
 				}
-			}
+			}}
 
 			// Last one freed
 			emms();
 
 			// Completely eraze MMX allocation state
-			for(int i = 0; i < 8; i++)
+			{for(int i = 0; i < 8; i++)
 			{
 				MMX[i].free();
-			}
+			}}
 		}
 	}
 
@@ -614,13 +614,13 @@ namespace SoftWire
 		if(ref == 0 && copy) throw Error("Cannot dereference 0");
 
 		// Check if already allocated
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(XMM[i].reference == ref)
 			{
 				return prioritize128(i);
 			}
-		}
+		}}
 
 		// Check spilled but unused registers
 		if(spillElimination)
@@ -649,28 +649,28 @@ namespace SoftWire
 		}
 
 		// Search for free registers
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(XMM[i].priority == 0 && XMM[i].spill.priority == 0)
 			{
 				return allocate128(i, ref, copy, ss);
 			}
-		}
+		}}
 		
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(XMM[i].priority == 0)
 			{
 				return allocate128(i, ref, copy, ss);
 			}
-		}
+		}}
 
 		// Need to spill one
 		int candidate = 0;
 		int betterCandidate = -1;
 		unsigned int priority = 0xFFFFFFFF;
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(XMM[i].priority < priority)
 			{
@@ -682,7 +682,7 @@ namespace SoftWire
 					betterCandidate = i;
 				}
 			}
-		}
+		}}
 
 		if(betterCandidate != -1)
 		{
@@ -864,7 +864,7 @@ namespace SoftWire
 
 	void RegisterAllocator::free(const OperandREF &ref)
 	{
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(i == Encoding::ESP || i == Encoding::EBP) continue;
 
@@ -872,28 +872,28 @@ namespace SoftWire
 			{
 				free32(i);
 			}
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(MMX[i].reference == ref)
 			{
 				free64(i);
 			}
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(XMM[i].reference == ref)
 			{
 				free128(i);
 			}
-		}
+		}}
 	}
 
 	void RegisterAllocator::spill(const OperandREF &ref)
 	{
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(i == Encoding::ESP || i == Encoding::EBP) continue;
 
@@ -901,23 +901,23 @@ namespace SoftWire
 			{
 				spill32(i);
 			}
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(MMX[i].reference == ref)
 			{
 				spill64(i);
 			}
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(XMM[i].reference == ref)
 			{
 				spill128(i);
 			}
-		}
+		}}
 	}
 
 	void RegisterAllocator::freeAll()
@@ -929,41 +929,41 @@ namespace SoftWire
 			free32(i);
 		}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			free64(i);
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			free128(i);
-		}
+		}}
 	}
 
 	void RegisterAllocator::spillAll()
 	{
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			// Prevent optimizations
 			markModified(OperandREG32(i));
 			markModified(OperandMMREG(i));
 			markModified(OperandXMMREG(i));
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			spill32(i);
 			spill64(i);
 			spill128(i);
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			// Prevent optimizations
 			markModified(OperandREG32(i));
 			markModified(OperandMMREG(i));
 			markModified(OperandXMMREG(i));
-		}
+		}}
 	}
 
 	void RegisterAllocator::spillMMX()
@@ -997,20 +997,20 @@ namespace SoftWire
 			return state;   // Empty state
 		}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			// Prevent optimizations
 			markModified(OperandREG32(i));
 			markModified(OperandMMREG(i));
 			markModified(OperandXMMREG(i));
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			state.GPR[i] = GPR[i];
 			state.MMX[i] = MMX[i];
 			state.XMM[i] = XMM[i];
-		}
+		}}
 
 		return state;
 	}
@@ -1023,7 +1023,7 @@ namespace SoftWire
 			return;
 		}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(GPR[i].reference != state.GPR[i].reference)
 			{
@@ -1039,9 +1039,9 @@ namespace SoftWire
 			{
 				spill128(i);
 			}
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			if(GPR[i].reference != state.GPR[i].reference && state.GPR[i].reference != 0)
 			{
@@ -1057,15 +1057,15 @@ namespace SoftWire
 			{
 				allocate128(i, state.XMM[i].reference, true, state.XMM[i].partial != 0);
 			}
-		}
+		}}
 
-		for(int i = 0; i < 8; i++)
+		{for(int i = 0; i < 8; i++)
 		{
 			// Prevent optimizations
 			markModified(OperandREG32(i));
 			markModified(OperandMMREG(i));
 			markModified(OperandXMMREG(i));
-		}
+		}}
 	}
 
 	void RegisterAllocator::exclude(const OperandREG32 &r32)

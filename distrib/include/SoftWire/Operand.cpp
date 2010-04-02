@@ -192,7 +192,7 @@ namespace SoftWire
 			throw INTERNAL_ERROR;
 		}
 
-		return strlwr(string);
+		return _strlwr(string);
 	}
 
 	bool Operand::isVoid(Type type)

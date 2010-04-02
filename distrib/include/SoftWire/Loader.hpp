@@ -11,7 +11,7 @@ namespace SoftWire
 	class Loader
 	{
 	public:
-		Loader(const Linker &linker, bool x64);
+		Loader(const Linker &linker, bool x64 = true); // Default to true on X64 platform
 
 		virtual ~Loader();
 

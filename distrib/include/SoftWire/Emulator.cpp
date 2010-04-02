@@ -2562,6 +2562,50 @@ namespace SoftWire
 		
 		return Optimizer::pavgb(mm, m64);
 	}
+/*
+					mov			edi, src1p
+					mov			esi, src2p
+					mov			ebx, myy
+					movq		mm0, ox7f7f7f7f7f7f7f7f	;get shift mask
+
+				fastyuy32loop:
+						mov         edx, myx
+						xor         ecx, ecx
+						shr			edx,1
+
+				    	align 16
+					fastyuy32xloop:
+							//---- fetch src1/dest
+
+							movq		mm7, [edi + ecx*8] ;src1/dest;
+							movq		mm6, [esi + ecx*8] ;src2
+							movq		mm5, mm7
+							pxor		mm7, mm6
+# if 1			// ------------------------------------------------
+						// Use (a + b + 1) >> 1 = (a | b) - ((a ^ b) >> 1)
+							por			mm6, mm5
+							psrlq		mm7, 1		// Fuck Intel! Where is psrlb
+							inc         ecx
+							pand		mm7, mm0
+							psubb		mm6, mm7
+# else			// ------------------------------------------------
+						// Use (a + b) >> 1 = (a & b) + ((a ^ b) >> 1)
+							pand		mm6, mm5
+							psrlq		mm7, 1		// Fuck Intel! Where is psrlb
+							inc         ecx
+							pand		mm7, mm0
+							paddb		mm6, mm7
+# endif			// ------------------------------------------------
+							cmp         ecx, edx
+							movq        [edi + ecx*8 - 8],mm6
+						jnz         fastyuy32xloop
+
+						add			edi, src1_pitch
+						add			esi, src2_pitch
+						dec		ebx
+					jnz		fastyuy32loop
+					emms
+*/
 
 	Encoding *Emulator::pavgb(OperandMMREG mm, OperandMM64 r_m64)
 	{

@@ -325,8 +325,8 @@ namespace SoftWire
 					encoding.O1 = (unsigned char)opcode;
 
 					encoding.format.O1 = true;
-				}
-				else if(!encoding.format.O2 &&
+        }
+				else if((!encoding.format.O2)/* &&
 				        (encoding.O1 == 0x0F ||
 				         encoding.O1 == 0xD8 ||
 				         encoding.O1 == 0xD9 ||
@@ -335,14 +335,29 @@ namespace SoftWire
 				         encoding.O1 == 0xDC ||
 				         encoding.O1 == 0xDD ||
 				         encoding.O1 == 0xDE ||
-				         encoding.O1 == 0xDF))
+				         encoding.O1 == 0xDF || encoding.O1 == 0x66)*/)
 				{
 					encoding.O2 = encoding.O1;
 					encoding.O1 = opcode;
 
 					encoding.format.O2 = true;
 				}
-				else if(encoding.O1 == 0x66)   // Operand size prefix for SSE2
+        else if (encoding.format.O2 && !encoding.format.O3) {
+					encoding.O3 = encoding.O2;
+					encoding.O2 = encoding.O1;
+					encoding.O1 = opcode;
+
+					encoding.format.O3 = true;
+        }
+        else if (encoding.format.O3 && !encoding.format.O4) {
+					encoding.O4 = encoding.O3;
+					encoding.O3 = encoding.O2;
+					encoding.O2 = encoding.O1;
+					encoding.O1 = opcode; 
+
+					encoding.format.O4 = true;
+        }
+/*				else if(encoding.O1 == 0x66)   // Operand size prefix for SSE2
 				{
 					encoding.addPrefix(0x66);   // HACK: Might not be valid for later instruction sets
 
@@ -354,6 +369,7 @@ namespace SoftWire
 
 					encoding.O1 = opcode;
 				}
+*/
 				else   // 3DNow!, SSE or SSE2 instruction, opcode as immediate
 				{
 					encoding.format.I1 = true;

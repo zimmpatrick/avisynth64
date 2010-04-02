@@ -161,7 +161,7 @@ namespace SoftWire
 			else if(encoding.hasImmediate() && encoding.relativeReference())
 			{
 				__int64 offset = encoding.getImmediate() - (__int64)currentCode - encoding.length(currentCode);
-				encoding.setCallOffset(offset);
+				encoding.setCallOffset((int)offset);
 			}
 
 			if(x64 && encoding.isRipRelative())

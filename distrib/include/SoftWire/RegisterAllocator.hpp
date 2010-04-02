@@ -61,7 +61,7 @@ namespace SoftWire
 		};
 
 	public:
-		RegisterAllocator(bool x64);
+		RegisterAllocator(bool x64 = false); // Default to true on X64 platform
 
 		virtual ~RegisterAllocator();
 

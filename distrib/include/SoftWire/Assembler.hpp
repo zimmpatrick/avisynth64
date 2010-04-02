@@ -15,7 +15,7 @@ namespace SoftWire
 	class Assembler
 	{
 	public:
-		Assembler(bool x64);
+		Assembler(bool x64 = true); // Default to true on X64 platform
 
 		virtual ~Assembler();
 

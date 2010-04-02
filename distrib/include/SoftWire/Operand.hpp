@@ -4,6 +4,9 @@
 #include "Encoding.hpp"
 #include "Error.hpp"
 
+#pragma warning( push )
+#pragma warning (disable: 4701) // local variable may be used without having been initialized
+
 namespace SoftWire
 {
 	struct Specifier
@@ -1435,5 +1438,7 @@ namespace SoftWire
 		return ref * scale;
 	}
 }
+
+#pragma warning( pop )
 
 #endif   // SoftWire_Operand_hpp
