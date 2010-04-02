@@ -1888,34 +1888,38 @@ void BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_
   }
 }
 #else
-extern "C" void asm_BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height);
+//extern "C" void BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height);
+extern "C" void asm_BitBlt_u(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height);
+extern "C" void asm_BitBlt_a(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height);
 
 void BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height) {
-	asm_BitBlt(dstp, dst_pitch, srcp, src_pitch, row_size, height);
-	/*
+/*	
+	if (GetCPUFlags() & CPUF_SSE4)
+		asm_BitBlt_SSE4(dstp, dst_pitch, srcp, src_pitch, row_size, height);
+	else
+		asm_BitBlt_SSE2(dstp, dst_pitch, srcp, src_pitch, row_size, height);
+*/
 	if ( (!height)|| (!row_size)) return;
 	
 	if (height == 1 || (src_pitch == dst_pitch && dst_pitch == row_size))
 		memcpy(dstp, srcp, row_size*height);
 	else
 	{
-		for (int y=height; y>0; --y)
+		
+		for (int y=height; y>0; --y, dstp += dst_pitch, srcp += src_pitch)
 		{
 			memcpy(dstp, srcp, row_size);
-			dstp += dst_pitch;
-			srcp += src_pitch;
 		}
+		/*
+		bool source_ua = (((INT_PTR)srcp&15) || (src_pitch & 15));
+		bool dest_ua = (((INT_PTR)dstp&15) || (dst_pitch & 15));
+	
+		if (source_ua || dest_ua) 
+			asm_BitBlt_u(dstp, dst_pitch, srcp, src_pitch, row_size, height);
+		else 
+			asm_BitBlt_a(dstp, dst_pitch, srcp, src_pitch, row_size, height);
+		*/
 	}
-	
-	bool source_ua = (((INT_PTR)srcp&15) || (src_pitch & 15));
-	bool dest_ua = (((INT_PTR)dstp&15) || (dst_pitch & 15));
-	
-	if (source_ua || dest_ua) 
-		asm_BitBlt_u(dstp, dst_pitch, srcp, src_pitch, row_size, height);
-	else 
-		asm_BitBlt_a(dstp, dst_pitch, srcp, src_pitch, row_size, height);
-
-	*/
 }
 
 

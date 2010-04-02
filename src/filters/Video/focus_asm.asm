@@ -166,36 +166,46 @@ ENDPROC_FRAME
 ; parameter 6(div):			rsp+48
 align 16
 PROC_FRAME accumulate_line_mode2_axmm
-	push		rbx		; rbx = __int64 t
-	[pushreg	rbx]
-	push		rsi		; rsi = __int64 div, derived from param int div
-	[pushreg	rsi]
+	;push		rbx		; rbx = __int64 t
+	;[pushreg	rbx]
+	;push		rsi		; rsi = __int64 div, derived from param int div
+	;[pushreg	rsi]
 	push		rdi		; rdi copies total planes to be used as a loop counter
 	[pushreg	rdi]
 END_PROLOG
 
-%DEFINE .i64_t	[rsp+24+40]
-%DEFINE .i_div	[rsp+24+48] 
+%DEFINE .i64_t	[rsp+8+40]
+%DEFINE .i_div	[rsp+8+48] 
 	
-	mov			rbx, .i64_t		;can just pass as an arg thanks to 64 bit registers
+	;mov			rbx, .i64_t		;can just pass as an arg thanks to 64 bit registers
 	
-	mov			esi, DWORD .i_div	; despite being declared as an integer, doesn't exceed 16bits 	
-	mov			eax, esi
+	mov			r10d, DWORD .i_div	; despite being declared as an integer, doesn't exceed 16bits 	
+	mov			eax, r10d
 	shl			eax, 16
-	or			esi, eax
-	mov			rax, rsi
-	shl			rax, 32
-	or			rsi, rax		; div64 = (__int64)(div) | ((__int64)(div)<<16) | ((__int64)(div)<<32) | ((__int64)(div)<<48)
+	or			r10d, eax
+	;mov			rax, rsi
+	;shl			rax, 32
+	;or			rsi, rax		; div64 = (__int64)(div) | ((__int64)(div)<<16) | ((__int64)(div)<<32) | ((__int64)(div)<<48)
 	xor			eax, eax		; eax will be plane offset (all planes).
+	
+	pxor		xmm15,xmm15		; our go to 0 register for unpacking
+	
+	movddup		xmm8, .i64_t
+	;punpcklqdq	xmm8, xmm8		; copy t to upper half
+	
+	movdqa		xmm9, [rel full]
+	movdqa		xmm10, [rel add64]
+	
+	movd		xmm11, r10d		; mov in div64
+	pshufd		xmm11, xmm11,00000000b	; copy div64 to upper half
 
 align 16
 .testplane:
 	movdqa		xmm0,[rcx+rax]	; Load current frame pixels cplane[offset]
-	pxor		xmm2,xmm2		; Clear mm2
 	movdqa		xmm6,xmm0		; copy current pixels	
 	movdqa		xmm7,xmm0		; copy current pixels
-	punpcklbw	xmm6,xmm2		; mm0 = lower 4 pixels  (exhanging h/l in these two give funny results)
-	punpckhbw	xmm7,xmm2		; mm1 = upper 4 pixels
+	punpcklbw	xmm6,xmm15		; mm0 = lower 4 pixels  (exchanging h/l in these two give funny results)
+	punpckhbw	xmm7,xmm15		; mm1 = upper 4 pixels
 
 	mov			edi, r8d		; load modifiable copy of planes
 	lea			r10,[rdx+rdi*8-8] ;rdx=planeP, rdi=planes
@@ -206,66 +216,58 @@ align 16
 	movdqa		xmm1, [r11+rax]	; Load 16 pixels from test plane
 	movdqa		xmm2, xmm0
 	movdqa		xmm5, xmm1		; Save test plane pixels (twice for unpack)
-	pxor		xmm4, xmm4
 	pmaxub		xmm2, xmm1		; Calc abs difference
 	pminub		xmm1, xmm0
 	psubusb		xmm2, xmm1		; mm2 = abs difference (packed bytes)
-	movq		xmm3, rbx		; Using t also gives funny results
-	punpcklqdq	xmm3, xmm3		; copy t to upper half
-	psubusb		xmm2, xmm3		; Subtrack threshold (unsigned, so all below threshold will give 0)
+	psubusb		xmm2, xmm8		; Subtrack threshold (unsigned, so all below threshold will give 0)
 	movdqa		xmm1, xmm5
-	pcmpeqb		xmm2, xmm4		; Compare values to 0
+	pcmpeqb		xmm2, xmm15		; Compare values to 0
 	prefetchnta	[r11+rax+128]	; it might just help - and we have an idle CPU here anyway ;)
-	movdqa		xmm3,xmm2
-	pxor		xmm2,[rel full]	; mm2 inverse mask
+	movdqa		xmm3, xmm2
+	pxor		xmm2, xmm9		; mm2 inverse mask
 	movdqa		xmm4, xmm0
 	pand		xmm5, xmm3
 	pand		xmm4, xmm2
-	pxor		xmm1, xmm1
 	por			xmm4, xmm5
 	movdqa		xmm5, xmm4		;stall (this & below)
-	punpcklbw	xmm4, xmm1		; mm4 = lower pixels
-	punpckhbw	xmm5, xmm1		; mm5 = upper pixels
+	punpcklbw	xmm4, xmm15		; mm4 = lower pixels
+	punpckhbw	xmm5, xmm15		; mm5 = upper pixels
 	paddusw		xmm6, xmm4
 	paddusw		xmm7, xmm5
 
-	sub			r10, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
+	sub			r10d, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
 	sub			edi, 1			; planes--
 	ja			.kernel_loop
 	
 	; Multiply (or in reality divides) added values, repack and store.
-	movdqa		xmm4, [rel add64]
-	pxor		xmm5, xmm5
 	movdqa		xmm0, xmm6
 	movdqa		xmm1, xmm6
-	punpcklwd	xmm0, xmm5		; low,low
-	movq		xmm6, rsi		; mov in div64
-	punpcklqdq	xmm6, xmm6		; copy div64 to upper half
-	punpckhwd	xmm1, xmm5		; low,high
+	punpcklwd	xmm0, xmm15		; low,low
+	punpckhwd	xmm1, xmm15		; low,high
 	movdqa		xmm2, xmm7
-	pmaddwd		xmm0, xmm6		; pmaddwd is used due to it's better rounding.
+	pmaddwd		xmm0, xmm11		; pmaddwd is used due to it's better rounding.
 	punpcklwd	xmm2, xmm5		; high,low
 	movdqa		xmm3, xmm7
-	paddd		xmm0, xmm4
-	pmaddwd		xmm1, xmm6
-	punpckhwd	xmm3, xmm5		; high,high
+	paddd		xmm0, xmm10		; add64
+	pmaddwd		xmm1, xmm11		; div64
+	punpckhwd	xmm3, xmm15		; high,high
 	psrld		xmm0, 15
-	paddd		xmm1, xmm4
-	pmaddwd		xmm2, xmm6
+	paddd		xmm1, xmm10		; add64
+	pmaddwd		xmm2, xmm11		; div64
 	packssdw	xmm0, xmm0
 	psrld		xmm1, 15
-	paddd		xmm2, xmm4
-	pmaddwd		xmm3, xmm6
+	paddd		xmm2, xmm10		; add64
+	pmaddwd		xmm3, xmm11		; div64
 	packssdw	xmm1, xmm1
 	psrld		xmm2, 15
-	paddd		xmm3, xmm4
+	paddd		xmm3, xmm10		; add64
 	psrld		xmm3, 15
 	packssdw	xmm2, xmm2
 	packssdw	xmm3, xmm3
-	packuswb	xmm0, xmm5
-	packuswb	xmm1, xmm5
-	packuswb	xmm2, xmm5
-	packuswb	xmm3, xmm5
+	packuswb	xmm0, xmm15
+	packuswb	xmm1, xmm15
+	packuswb	xmm2, xmm15
+	packuswb	xmm3, xmm15
 	pshufd		xmm0, xmm0, 11111100b 
 	pshufd		xmm1, xmm1, 11110011b
 	pshufd		xmm2, xmm2, 11001111b
@@ -280,15 +282,15 @@ align 16
 	
 align 16
 .outloop:
-	emms
+	;emms
 	pop rdi
-	pop rsi
-	pop rbx
+	;pop rsi
+	;pop rbx
 	ret
 	
 ENDPROC_FRAME
 
-;=============================================================================
+;;=============================================================================
 ; void accumulate_line_mode2_unaligned_xmm(const BYTE* c_plane, const BYTE** planeP, int planes, int rowsize, __int64 t, int div) 
 ;=============================================================================
 ; parameter 1(cplane):		rcx
@@ -297,7 +299,6 @@ ENDPROC_FRAME
 ; parameter 4(row_size):	r9d 
 ; parameter 5(t):			rsp+40
 ; parameter 6(div):			rsp+48
-
 align 16
 PROC_FRAME accumulate_line_mode2_uaxmm
 	push		rbx		; rbx = __int64 t
@@ -321,15 +322,25 @@ END_PROLOG
 	shl			rax, 32
 	or			rsi, rax		; div64 = (__int64)(div) | ((__int64)(div)<<16) | ((__int64)(div)<<32) | ((__int64)(div)<<48)
 	xor			eax, eax		; eax will be plane offset (all planes).
+	
+	pxor		xmm15,xmm15		; our go to 0 register for unpacking
+	
+	movq		xmm8, rbx
+	punpcklqdq	xmm8, xmm8		; copy t to upper half
+	
+	movdqa		xmm9, [rel full]
+	movdqa		xmm10, [rel add64]
+	
+	movq		xmm11, rsi		; mov in div64
+	punpcklqdq	xmm11, xmm11	; copy div64 to upper half
 
 align 16
 .testplane:
 	movdqu		xmm0,[rcx+rax]	; Load current frame pixels cplane[offset]
-	pxor		xmm2,xmm2		; Clear mm2
 	movdqa		xmm6,xmm0		; copy current pixels	
 	movdqa		xmm7,xmm0		; copy current pixels
-	punpcklbw	xmm6,xmm2		; mm0 = lower 4 pixels  (exhanging h/l in these two give funny results)
-	punpckhbw	xmm7,xmm2		; mm1 = upper 4 pixels
+	punpcklbw	xmm6,xmm15		; mm0 = lower 4 pixels  (exchanging h/l in these two give funny results)
+	punpckhbw	xmm7,xmm15		; mm1 = upper 4 pixels
 
 	mov			edi, r8d		; load modifiable copy of planes
 	lea			r10,[rdx+rdi*8-8] ;rdx=planeP, rdi=planes
@@ -340,66 +351,58 @@ align 16
 	movdqu		xmm1, [r11+rax]	; Load 16 pixels from test plane
 	movdqa		xmm2, xmm0
 	movdqa		xmm5, xmm1		; Save test plane pixels (twice for unpack)
-	pxor		xmm4, xmm4
 	pmaxub		xmm2, xmm1		; Calc abs difference
 	pminub		xmm1, xmm0
 	psubusb		xmm2, xmm1		; mm2 = abs difference (packed bytes)
-	movq		xmm3, rbx		; Using t also gives funny results
-	punpcklqdq	xmm3, xmm3		; copy t to upper half
-	psubusb		xmm2, xmm3		; Subtrack threshold (unsigned, so all below threshold will give 0)
+	psubusb		xmm2, xmm8		; Subtrack threshold (unsigned, so all below threshold will give 0)
 	movdqa		xmm1, xmm5
-	pcmpeqb		xmm2, xmm4		; Compare values to 0
+	pcmpeqb		xmm2, xmm15		; Compare values to 0
 	prefetchnta	[r11+rax+128]	; it might just help - and we have an idle CPU here anyway ;)
-	movdqa		xmm3,xmm2
-	pxor		xmm2,[rel full]	; mm2 inverse mask
+	movdqa		xmm3, xmm2
+	pxor		xmm2, xmm9		; mm2 inverse mask
 	movdqa		xmm4, xmm0
 	pand		xmm5, xmm3
 	pand		xmm4, xmm2
-	pxor		xmm1, xmm1
 	por			xmm4, xmm5
 	movdqa		xmm5, xmm4		;stall (this & below)
-	punpcklbw	xmm4, xmm1		; mm4 = lower pixels
-	punpckhbw	xmm5, xmm1		; mm5 = upper pixels
+	punpcklbw	xmm4, xmm15		; mm4 = lower pixels
+	punpckhbw	xmm5, xmm15		; mm5 = upper pixels
 	paddusw		xmm6, xmm4
 	paddusw		xmm7, xmm5
 
-	sub			r10, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
+	sub			r10d, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
 	sub			edi, 1			; planes--
 	ja			.kernel_loop
 	
 	; Multiply (or in reality divides) added values, repack and store.
-	movdqa		xmm4, [rel add64]
-	pxor		xmm5, xmm5
 	movdqa		xmm0, xmm6
 	movdqa		xmm1, xmm6
-	punpcklwd	xmm0, xmm5		; low,low
-	movq		xmm6, rsi		; mov in div64
-	punpcklqdq	xmm6, xmm6		; copy div64 to upper half
-	punpckhwd	xmm1, xmm5		; low,high
+	punpcklwd	xmm0, xmm15		; low,low
+	punpckhwd	xmm1, xmm15		; low,high
 	movdqa		xmm2, xmm7
-	pmaddwd		xmm0, xmm6		; pmaddwd is used due to it's better rounding.
+	pmaddwd		xmm0, xmm11		; pmaddwd is used due to it's better rounding.
 	punpcklwd	xmm2, xmm5		; high,low
 	movdqa		xmm3, xmm7
-	paddd		xmm0, xmm4
-	pmaddwd		xmm1, xmm6
-	punpckhwd	xmm3, xmm5			; high,high
+	paddd		xmm0, xmm10		; add64
+	pmaddwd		xmm1, xmm11		; div64
+	punpckhwd	xmm3, xmm15		; high,high
 	psrld		xmm0, 15
-	paddd		xmm1, xmm4
-	pmaddwd		xmm2, xmm6
+	paddd		xmm1, xmm10		; add64
+	pmaddwd		xmm2, xmm11		; div64
 	packssdw	xmm0, xmm0
 	psrld		xmm1, 15
-	paddd		xmm2, xmm4
-	pmaddwd		xmm3, xmm6
+	paddd		xmm2, xmm10		; add64
+	pmaddwd		xmm3, xmm11		; div64
 	packssdw	xmm1, xmm1
 	psrld		xmm2, 15
-	paddd		xmm3, xmm4
+	paddd		xmm3, xmm10		; add64
 	psrld		xmm3, 15
 	packssdw	xmm2, xmm2
 	packssdw	xmm3, xmm3
-	packuswb	xmm0, xmm5
-	packuswb	xmm1, xmm5
-	packuswb	xmm2, xmm5
-	packuswb	xmm3, xmm5
+	packuswb	xmm0, xmm15
+	packuswb	xmm1, xmm15
+	packuswb	xmm2, xmm15
+	packuswb	xmm3, xmm15
 	pshufd		xmm0, xmm0, 11111100b 
 	pshufd		xmm1, xmm1, 11110011b
 	pshufd		xmm2, xmm2, 11001111b
@@ -513,8 +516,8 @@ END_PROLOG
 	
 	xor		eax, eax
 	movdqa	xmm0, [rcx+rax]
-	movdqa	xmm2, [rcx+rax+16]
 	movdqa	xmm1, [rdx+rax]
+	movdqa	xmm2, [rcx+rax+16]
 	movdqa	xmm3, [rdx+rax+16]
 	psadbw	xmm0, xmm1					; Sum of absolute difference
 	psadbw	xmm2, xmm3					; Produces two 32bit results, one for top half, one for bottom
@@ -535,21 +538,22 @@ align 16
 align 16
 .xloop:
 	movdqa	xmm0, [rcx+rax]
-	movdqa	xmm2, [rcx+rax+16]
 	movdqa	xmm1, [rdx+rax]
+	movdqa	xmm2, [rcx+rax+16]
 	movdqa	xmm3, [rdx+rax+16]
 	psadbw	xmm0, xmm1					; Sum of absolute difference
 	psadbw	xmm2, xmm3					; Produces two 32bit results, one for top half, one for bottom
 	paddd	xmm6, xmm0					; Add...
 	paddd	xmm7, xmm2
-	movdqa	xmm0, [rcx+rax+32]
-	movdqa	xmm2, [rcx+rax+48]
-	movdqa	xmm1, [rdx+rax+32]
-	movdqa	xmm3, [rdx+rax+48]
-	psadbw	xmm0, xmm1
-	psadbw	xmm2, xmm3
-	paddd	xmm6, xmm0
-	paddd	xmm7, xmm2
+	
+	movdqa	xmm8, [rcx+rax+32]
+	movdqa	xmm9, [rdx+rax+32]
+	movdqa	xmm10, [rcx+rax+48]
+	movdqa	xmm11, [rdx+rax+48]
+	psadbw	xmm8, xmm9
+	psadbw	xmm10, xmm11
+	paddd	xmm6, xmm8
+	paddd	xmm7, xmm10
 
 	add		eax, 64
 	cmp		eax, r9d    
@@ -567,7 +571,6 @@ align 16
 	movd	ecx, xmm0
 	movd	eax, xmm7
 	add		eax, ecx
-	emms
 	ret
 	
 ENDPROC_FRAME

@@ -175,15 +175,6 @@ FRV_asm FRV_aligned_SSE2_FIR21;
 FRV_asm FRV_aligned_SSE2_FIR22;
 FRV_asm FRV_aligned_SSE2_FIR23;
 FRV_asm FRV_aligned_SSE2_FIR24;
-FRV_asm FRV_aligned_SSE2_FIR25;
-FRV_asm FRV_aligned_SSE2_FIR26;
-FRV_asm FRV_aligned_SSE2_FIR27;
-FRV_asm FRV_aligned_SSE2_FIR28;
-FRV_asm FRV_aligned_SSE2_FIR29;
-FRV_asm FRV_aligned_SSE2_FIR30;
-FRV_asm FRV_aligned_SSE2_FIR31;
-FRV_asm FRV_aligned_SSE2_FIR32;
-FRV_asm FRV_aligned_SSE2_FIR33;
 
 
 FRV_asm FRV_unaligned_SSE2_FIR1;
@@ -199,15 +190,6 @@ FRV_asm FRV_unaligned_SSE2_FIR21;
 FRV_asm FRV_unaligned_SSE2_FIR22;
 FRV_asm FRV_unaligned_SSE2_FIR23;
 FRV_asm FRV_unaligned_SSE2_FIR24;
-FRV_asm FRV_unaligned_SSE2_FIR25;
-FRV_asm FRV_unaligned_SSE2_FIR26;
-FRV_asm FRV_unaligned_SSE2_FIR27;
-FRV_asm FRV_unaligned_SSE2_FIR28;
-FRV_asm FRV_unaligned_SSE2_FIR29;
-FRV_asm FRV_unaligned_SSE2_FIR30;
-FRV_asm FRV_unaligned_SSE2_FIR31;
-FRV_asm FRV_unaligned_SSE2_FIR32;
-FRV_asm FRV_unaligned_SSE2_FIR33;
 
 //SSE3 FIR
 FRV_asm FRV_aligned_SSE3_FIR2;
@@ -261,7 +243,34 @@ FRV_asm FRV_unaligned_SSSE3_FIR12;
 
 //SSE4 FIR
 FRV_asm FRV_aligned_SSE4_FIR1;
+FRV_asm FRV_aligned_SSE4_FIR13;
+FRV_asm FRV_aligned_SSE4_FIR14;
+FRV_asm FRV_aligned_SSE4_FIR15;
+FRV_asm FRV_aligned_SSE4_FIR16;
+FRV_asm FRV_aligned_SSE4_FIR17;
+FRV_asm FRV_aligned_SSE4_FIR18;
+FRV_asm FRV_aligned_SSE4_FIR19;
+FRV_asm FRV_aligned_SSE4_FIR20;
+FRV_asm FRV_aligned_SSE4_FIR21;
+FRV_asm FRV_aligned_SSE4_FIR22;
+FRV_asm FRV_aligned_SSE4_FIR23;
+FRV_asm FRV_aligned_SSE4_FIR24;
+
+
 FRV_asm FRV_unaligned_SSE4_FIR1;
+FRV_asm FRV_unaligned_SSE4_FIR13;
+FRV_asm FRV_unaligned_SSE4_FIR14;
+FRV_asm FRV_unaligned_SSE4_FIR15;
+FRV_asm FRV_unaligned_SSE4_FIR16;
+FRV_asm FRV_unaligned_SSE4_FIR17;
+FRV_asm FRV_unaligned_SSE4_FIR18;
+FRV_asm FRV_unaligned_SSE4_FIR19;
+FRV_asm FRV_unaligned_SSE4_FIR20;
+FRV_asm FRV_unaligned_SSE4_FIR21;
+FRV_asm FRV_unaligned_SSE4_FIR22;
+FRV_asm FRV_unaligned_SSE4_FIR23;
+FRV_asm FRV_unaligned_SSE4_FIR24;
+
 
 }
 

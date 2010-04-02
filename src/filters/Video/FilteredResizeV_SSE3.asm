@@ -88,7 +88,7 @@ align 16
 %IFIDNI %1, aligned
 	movdqa		xmm4, DQWORD [rsi]				; xmm4 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
 %ELSE
-	movdqu		xmm4, DQWORD [rsi]				; xmm4 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
+	lddqu		xmm4, DQWORD [rsi]				; xmm4 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
 %ENDIF
 	
 %REP %2
@@ -117,7 +117,7 @@ align 16
 	%IFIDNI %1,aligned
 		movdqa	xmm4, DQWORD [rsi]				; xmm4 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
 	%ELSE
-		movdqu	xmm4, DQWORD [rsi]				; xmm4 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
+		lddqu	xmm4, DQWORD [rsi]				; xmm4 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
 	%ENDIF
 %ENDIF
 
@@ -130,7 +130,7 @@ align 16
     psraw		xmm1, 6							; Compensate fraction
     psraw		xmm7, 6							; Compensate fraction
     packuswb	xmm1, xmm7						; xmm1 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
-    movdqa		DQWORD [rdx+rax], xmm1			; store calculated pixels in dest[x]
+    movntdq 	DQWORD [rdx+rax], xmm1			; store calculated pixels in dest[x]
     add			eax,16							; x+=16
 	movdqa		xmm7, xmm6						; Accumulator 1
 	movdqa		xmm1, xmm6						; Acc 2 = total = rounder

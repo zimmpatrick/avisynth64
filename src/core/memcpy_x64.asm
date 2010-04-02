@@ -30,12 +30,13 @@ SECTION .text
 ;cglobal memoptS
 ;cglobal memoptU
 ;cglobal memoptA
-cglobal conv422toYUY2_SSE2
-cglobal convYUY2to422_SSE2
+;cglobal conv422toYUY2_SSE2
+;cglobal convYUY2to422_SSE2
 
-;global asm_BitBlt_u
-;global asm_BitBlt_a
-global asm_BitBlt
+global asm_BitBlt_u
+global asm_BitBlt_a
+global asm_BitBlt_SSE2
+global asm_BitBlt_SSE4
 
 
 ;=======================================================================
@@ -286,34 +287,35 @@ END_PROLOG
 
 align 16
 .yloop:
-	xor			eax, eax
 	mov			r10d, ebp
 	and			r10d, 0FFFFFFC0h
+	mov			eax, r10d
 	jz			.xloop16_a
 	
 align 16
 .xloop64:
 	prefetchnta	[r8+rax+256]
-	movdqu		xmm0,DQWORD [r8 + rax +   0]
-	movdqu		xmm1,DQWORD [r8 + rax +  16]
-	movdqu		xmm2,DQWORD [r8 + rax +  32]
-	movdqu		xmm3,DQWORD [r8 + rax +  48]
-	movdqu		DQWORD[rcx + rax +   0], xmm0
-	movdqu		DQWORD[rcx + rax +  16], xmm1
-	movdqu		DQWORD[rcx + rax +  32], xmm2
-	movdqu		DQWORD[rcx + rax +  48], xmm3
+	movdqu		xmm0,DQWORD [r8 + r10 - 16]
+	movdqu		xmm1,DQWORD [r8 + r10 - 32]
+	movdqu		DQWORD[rcx + r10 - 16], xmm0
+	movdqu		DQWORD[rcx + r10 - 32], xmm1
 	
-	add			eax, 64
-	cmp			eax, r10d
-	jne			.xloop64
+	sub			r10d, 64
 	
-	cmp			eax, ebp
-	je			.xdone
+	movdqu		xmm2,DQWORD [r8 + r10+64 -  48]
+	movdqu		xmm3,DQWORD [r8 + r10+64 -  64]
+	movdqu		DQWORD[rcx + r10+64 -  48], xmm2
+	movdqu		DQWORD[rcx + r10+64 -  64], xmm3
+	
+	ja			.xloop64
+	
+	test		ebp, 63
+	jz			.xdone
 
 align 16
 .xloop16_a:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFF0h
+	and			r10d, 000000030h
 	jz			.xloop4_a
 	
 align 16
@@ -321,16 +323,16 @@ align 16
 	movdqu		xmm0,DQWORD [r8 + rax]
 	movdqu	 	DQWORD[rcx + rax], xmm0
 	add			eax, 16
-	cmp			eax, r10d
-	jne			.xloop16
+	sub			r10d,16
+	ja			.xloop16
 	
-	cmp			eax, ebp
+	test		ebp, 15
 	je			.xdone
 
 align 16
 .xloop4_a:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFFCh
+	and			r10d, 00000000Ch
 	jz			.xloop1
 	
 align 16
@@ -338,10 +340,10 @@ align 16
 	mov			r11d, DWORD [r8 + rax]
 	mov			DWORD [rcx + rax], r11d
 	add			eax, 4
-	cmp			eax, r10d
-	jne			.xloop4			
+	sub			r10d, 4
+	ja			.xloop4			
 	
-	cmp			eax, ebp
+	test		ebp, 3
 	jz			.xdone
 	
 align 16
@@ -350,7 +352,7 @@ align 16
 	mov			BYTE [rcx+rax], r11b
 	add			eax, 1
 	cmp			eax, ebp
-	jne			.xloop1
+	jb			.xloop1
 
 align 16
 .xdone:
@@ -397,34 +399,35 @@ END_PROLOG
 
 align 16
 .yloop:
-	xor			eax, eax
 	mov			r10d, ebp
 	and			r10d, 0FFFFFFC0h
+	mov			eax, r10d
 	jz			.xloop16_a
 	
 align 16
 .xloop64:
 	prefetchnta	[r8+rax+256]
-	movdqa		xmm0,DQWORD [r8 + rax +   0]
-	movdqa		xmm1,DQWORD [r8 + rax +  16]
-	movdqa		xmm2,DQWORD [r8 + rax +  32]
-	movdqa		xmm3,DQWORD [r8 + rax +  48]
-	movdqa		DQWORD[rcx + rax +   0], xmm0
-	movdqa		DQWORD[rcx + rax +  16], xmm1
-	movdqa		DQWORD[rcx + rax +  32], xmm2
-	movdqa		DQWORD[rcx + rax +  48], xmm3
+	movdqa		xmm0,DQWORD [r8 + r10 - 16]
+	movdqa		xmm1,DQWORD [r8 + r10 - 32]
+	movdqa		DQWORD[rcx + r10 - 16], xmm0
+	movdqa		DQWORD[rcx + r10 - 32], xmm1
 	
-	add			eax, 64
-	cmp			eax, r10d
-	jne			.xloop64
+	sub			r10d, 64
 	
-	cmp			eax, ebp
-	je			.xdone
+	movdqa		xmm2,DQWORD [r8 + r10+64 -  48]
+	movdqa		xmm3,DQWORD [r8 + r10+64 -  64]
+	movdqa		DQWORD[rcx + r10+64 -  48], xmm2
+	movdqa		DQWORD[rcx + r10+64 -  64], xmm3
+	
+	ja			.xloop64
+	
+	test		ebp, 63
+	jz			.xdone
 
 align 16
 .xloop16_a:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFF0h
+	and			r10d, 000000030h
 	jz			.xloop4_a
 	
 align 16
@@ -432,16 +435,16 @@ align 16
 	movdqa		xmm0,DQWORD [r8 + rax]
 	movdqa	 	DQWORD[rcx + rax], xmm0
 	add			eax, 16
-	cmp			eax, r10d
-	jne			.xloop16
+	sub			r10d,16
+	ja			.xloop16
 	
-	cmp			eax, ebp
+	test		ebp, 15
 	je			.xdone
 
 align 16
 .xloop4_a:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFFCh
+	and			r10d, 00000000Ch
 	jz			.xloop1
 	
 align 16
@@ -449,10 +452,10 @@ align 16
 	mov			r11d, DWORD [r8 + rax]
 	mov			DWORD [rcx + rax], r11d
 	add			eax, 4
-	cmp			eax, r10d
-	jne			.xloop4			
+	sub			r10d, 4
+	ja			.xloop4			
 	
-	cmp			eax, ebp
+	test		ebp, 3
 	jz			.xdone
 	
 align 16
@@ -461,7 +464,7 @@ align 16
 	mov			BYTE [rcx+rax], r11b
 	add			eax, 1
 	cmp			eax, ebp
-	jne			.xloop1
+	jb			.xloop1
 
 align 16
 .xdone:
@@ -495,7 +498,7 @@ align 16
 ; r11=cur
 
 align 16
-PROC_FRAME asm_BitBlt
+PROC_FRAME asm_BitBlt_SSE2
 	push		rbx
 	[pushreg	rbx]
 	push		rbp
@@ -507,53 +510,53 @@ END_PROLOG
 
 	mov			ebx, DWORD .height				; load y loop counter
 	mov			ebp, DWORD .rowsize				; load x counter
+
+	mov			eax, ecx
+	mov			r10d,edx
+	or			eax, r9d
+	or			r10d, r8d
+	or			eax, r10d
+	
 	test		ebx,ebx
 	jz			.end
 	test		ebp, ebp
 	jz			.end	
 	
-	test		ecx, 0Fh
-	jnz			.yloop_U
-	test		edx, 0Fh
-	jnz			.yloop_U
-	test		r8d, 0Fh
-	jnz			.yloop_U
-	test		r9d, 0Fh
+
+	test		eax, 0Fh
 	jnz			.yloop_U
 	
 
 align 16
 .yloop_A:
-	xor			eax, eax
 	mov			r10d, ebp
 	and			r10d, 0FFFFFFC0h
-	jz			.xloop16_A
+	mov			eax, r10d
+	jz			.xloop16_A1
 	
 align 16
 .xloop64_A:
-	prefetchnta	[r8+rax+128]
-	movdqa		xmm0,DQWORD [r8 + rax +   0]
-	movdqa		xmm1,DQWORD [r8 + rax +  16]
-	movdqa		xmm2,DQWORD [r8 + rax +  32]
-	movdqa		xmm3,DQWORD [r8 + rax +  48]
-	movdqa		DQWORD[rcx + rax +   0], xmm0
-	movdqa		DQWORD[rcx + rax +  16], xmm1
-	movdqa		DQWORD[rcx + rax +  32], xmm2
-	movdqa		DQWORD[rcx + rax +  48], xmm3
-		
-	add			eax, 64
-	cmp			eax, r10d
-	jne			.xloop64_A
+	movdqa		xmm0,DQWORD [r8 + r10 -  16]
+	movdqa		xmm1,DQWORD [r8 + r10 -  32]
+	movdqa		DQWORD[rcx + r10 -  16], xmm0
+	movdqa		DQWORD[rcx + r10 -  32], xmm1
 	
-	cmp			eax, ebp
-	je			.xdone_A
-		
+	sub			r10d, 64
 
+	movdqa		xmm2,DQWORD [r8 + r10+64 -  48]
+	movdqa		xmm3,DQWORD [r8 + r10+64 -  64]
+	movdqa		DQWORD[rcx + r10+64 -  48], xmm2
+	movdqa		DQWORD[rcx + r10+64 -  64], xmm3
+
+	ja			.xloop64_A
+	
+	test		ebp, 63
+	jz			.xdone_A
 
 align 16
 .xloop16_A1:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFF0h
+	and			r10d, 000000030h
 	jz			.xloop4_A1
 	
 align 16
@@ -561,27 +564,28 @@ align 16
 	movdqa		xmm0,DQWORD [r8 + rax]
 	movdqa	 	DQWORD[rcx + rax], xmm0
 	add			eax, 16
-	cmp			eax, r10d
-	jne			.xloop16_A
+	sub			r10d, 16
+	ja			.xloop16_A
 	
-	cmp			eax, ebp
-	je			.xdone_A
+	test		ebp, 15
+	jz			.xdone_A
 
 align 16
 .xloop4_A1:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFFCh
+	and			r10d, 00000000Ch
 	jz			.xloop1_A
+	
 
 align 16
 .xloop4_A:			
 	mov			r11d, DWORD [r8 + rax]
 	mov			DWORD [rcx + rax], r11d
 	add			eax, 4
-	cmp			eax, r10d
-	jne			.xloop4_A	
+	sub			r10d, 4
+	ja			.xloop4_A	
 	
-	cmp			eax, ebp
+	test		ebp, 3
 	jz			.xdone_A
 	
 align 16
@@ -590,7 +594,7 @@ align 16
 	mov			BYTE [rcx+rax], r11b
 	add			eax, 1
 	cmp			eax, ebp
-	jne			.xloop1_A
+	jb			.xloop1_A
 
 align 16
 .xdone_A:
@@ -606,34 +610,35 @@ align 16
 
 align 16
 .yloop_U:
-	xor			eax, eax
 	mov			r10d, ebp
 	and			r10d, 0FFFFFFC0h
+	mov			eax, r10d
 	jz			.xloop16_U1
 	
 align 16
 .xloop64_U:
-	prefetchnta	[r8+rax+128]
-	movdqu		xmm0,DQWORD [r8 + rax +   0]
-	movdqu		xmm1,DQWORD [r8 + rax +  16]
-	movdqu		xmm2,DQWORD [r8 + rax +  32]
-	movdqu		xmm3,DQWORD [r8 + rax +  48]
-	movdqu		DQWORD[rcx + rax +   0], xmm0
-	movdqu		DQWORD[rcx + rax +  16], xmm1
-	movdqu		DQWORD[rcx + rax +  32], xmm2
-	movdqu		DQWORD[rcx + rax +  48], xmm3
+	movdqa		xmm0,DQWORD [r8 + r10 -  16]
+	movdqa		xmm1,DQWORD [r8 + r10 -  32]
+	movdqa		DQWORD[rcx + r10 -  16], xmm0
+	movdqa		DQWORD[rcx + r10 -  32], xmm1
 	
-	add			eax, 64
-	cmp			eax, r10d
-	jne			.xloop64_U
+	sub			r10d, 64
+
+	movdqa		xmm2,DQWORD [r8 + r10+64 -  48]
+	movdqa		xmm3,DQWORD [r8 + r10+64 -  64]
+	movdqa		DQWORD[rcx + r10+64 -  48], xmm2
+	movdqa		DQWORD[rcx + r10+64 -  64], xmm3
+
+	ja			.xloop64_U
 	
-	cmp			eax, ebp
-	je			.xdone_U
+	test		ebp, 63
+	jz			.xdone_U
+
 
 align 16
 .xloop16_U1:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFF0h
+	and			r10d, 000000030h
 	jz			.xloop4_U1
 	
 align 16
@@ -641,16 +646,16 @@ align 16
 	movdqu		xmm0,DQWORD [r8 + rax]
 	movdqu	 	DQWORD [rcx + rax], xmm0
 	add			eax, 16
-	cmp			eax, r10d
-	jne			.xloop16_U
+	sub			r10d, 16
+	ja			.xloop16_U
 	
-	cmp			eax, ebp
-	je			.xdone_U
+	test		ebp, 15
+	jz			.xdone_U
 	
 align 16
 .xloop4_U1:
 	mov			r10d, ebp
-	and			r10d, 0FFFFFFFCh
+	and			r10d, 00000000Ch
 	jz			.xloop1_U
 
 align 16
@@ -658,10 +663,10 @@ align 16
 	mov			r11d, DWORD [r8 + rax]
 	mov			DWORD [rcx + rax], r11d
 	add			eax, 4
-	cmp			eax, r10d
-	jne			.xloop4_U
+	sub			r10d, 4
+	ja			.xloop4_U
 	
-	cmp			eax, ebp
+	test		ebp, 3
 	jz			.xdone_U
 
 align 16
@@ -670,7 +675,7 @@ align 16
 	mov			BYTE [rcx+rax], r11b
 	add			eax, 1
 	cmp			eax, ebp
-	jne			.xloop1_U
+	jb			.xloop1_U
 
 align 16
 .xdone_U:
@@ -685,6 +690,215 @@ align 16
     pop			rbx
     ret
 [ENDPROC_FRAME]
+
+;=============================================================================
+; void asm_BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height)
+;=============================================================================	
+; parameter 1(dstp):		rcx
+; parameter 2(dst_pitch):	rdx
+; parameter 3(srcp):		r8
+; parameter 4(src_pitch):	r9 
+; parameter 5(row_size):	rsp+40
+; parameter 6(height):		rsp+48
+
+
+;align 16
+PROC_FRAME asm_BitBlt_SSE4
+	push		rbx
+	[pushreg	rbx]
+	push		rbp
+	[pushreg	rbp]
+END_PROLOG
+
+%DEFINE .rowsize	[rsp+16+40] 
+%DEFINE .height		[rsp+16+48]
+
+	mov			ebx, DWORD .height				; load y loop counter
+	mov			ebp, DWORD .rowsize				; load x counter
+	
+	mov			eax, ecx
+	mov			r10d,edx
+	or			eax, r9d
+	or			r10d, r8d
+	or			eax, r10d
+	
+	
+	;test		ebx,ebx
+	;jz			.end
+	;test		ebp, ebp
+	;jz			.end	
+	
+	test		eax, 0Fh
+	jnz			.yloop_U
+	
+
+align 16
+.yloop_A:
+	mov			r10d, ebp
+	and			r10d, 0FFFFFFC0h
+	mov			eax, r10d
+	jz			.xloop16_A1
+		
+align 16
+.xloop64_A:
+	movntdqa	xmm0,DQWORD [r8 + r10 -  16]
+	movntdqa	xmm1,DQWORD [r8 + r10 -  32]
+	movntdq		DQWORD[rcx + r10 -  16], xmm0
+	movntdq		DQWORD[rcx + r10 -  32], xmm1
+	
+	sub			r10d, 64
+
+	movntdqa	xmm2,DQWORD [r8 + r10+64 -  48]
+	movntdqa	xmm3,DQWORD [r8 + r10+64 -  64]
+	movntdq		DQWORD[rcx + r10+64 -  48], xmm2
+	movntdq		DQWORD[rcx + r10+64 -  64], xmm3
+
+	ja			.xloop64_A
+	
+	test		ebp, 63
+	jz			.xdone_A
+		
+align 16
+.xloop16_A1:
+	mov			r10d, ebp
+	and			r10d, 000000030h
+	jz			.xloop4_A1
+	
+	
+align 16
+.xloop16_A:					
+	movntdqa	xmm0,DQWORD [r8 + rax]
+	movntdq	 	DQWORD[rcx + rax], xmm0
+	add			eax, 16
+	sub			r10d, 16
+	ja			.xloop16_A
+	
+	test		ebp, 15
+	jz			.xdone_A
+
+align 16
+.xloop4_A1:
+	mov			r10d, ebp
+	and			r10d, 00000000Ch
+	jz			.xloop1_A
+	
+
+align 16
+.xloop4_A:			
+	mov			r11d, DWORD [r8 + rax]
+	mov			DWORD [rcx + rax], r11d
+	add			eax, 4
+	sub			r10d, 4
+	ja			.xloop4_A	
+	
+	test		ebp, 3
+	jz			.xdone_A
+	
+align 16
+.xloop1_A:
+	mov			r11b, BYTE [r8 + rax]
+	mov			BYTE [rcx+rax], r11b
+	add			eax, 1
+	cmp			eax, ebp
+	jb			.xloop1_A
+
+align 16
+.xdone_A:
+	add			rcx, rdx
+	add			r8, r9
+	sub			ebx, 1
+	ja			.yloop_A
+	
+	mfence
+	pop			rbp
+    pop			rbx
+    ret
+
+
+align 16
+.yloop_U:
+	mov			r10d, ebp
+	and			r10d, 0FFFFFFC0h
+	mov			eax, r10d
+	jz			.xloop16_U1
+	
+align 16
+.xloop64_U:
+	prefetchnta	[r8+rax+128]
+	lddqu		xmm0,DQWORD [r8 + r10 - 16]
+	lddqu		xmm1,DQWORD [r8 + r10 - 32]
+	movdqu		DQWORD[rcx + r10 -  16], xmm0
+	movdqu		DQWORD[rcx + r10 -  32], xmm1
+
+	sub			r10d, 64
+	
+	lddqu		xmm2,DQWORD [r8 + r10+64 -  48]
+	lddqu		xmm3,DQWORD [r8 + r10+64 -  64]
+	movdqu		DQWORD[rcx + r10+64 -  48], xmm2
+	movdqu		DQWORD[rcx + r10+64 -  64], xmm3
+	
+	ja			.xloop64_U
+	
+	test		ebp, 63
+	jz			.xdone_U
+
+align 16
+.xloop16_U1:
+	mov			r10d, ebp
+	and			r10d, 000000030h
+	jz			.xloop4_U1
+	
+align 16
+.xloop16_U:					
+	lddqu		xmm0,DQWORD [r8 + rax]
+	movdqu	 	DQWORD [rcx + rax], xmm0
+	add			eax, 16
+	sub			r10d, 16
+	ja			.xloop16_U
+	
+	test		ebp, 15
+	jz			.xdone_U
+	
+align 16
+.xloop4_U1:
+	mov			r10d, ebp
+	and			r10d, 00000000Ch
+	jz			.xloop1_U
+
+
+align 16
+.xloop4_U:			
+	mov			r11d, DWORD [r8 + rax]
+	mov			DWORD [rcx + rax], r11d
+	add			eax, 4
+	sub			r10d,4
+	ja			.xloop4_U
+	
+	test		ebp, 3
+	jz			.xdone_U
+
+align 16
+.xloop1_U:
+	mov			r11b, BYTE [r8 + rax]
+	mov			BYTE [rcx+rax], r11b
+	add			eax, 1
+	cmp			eax, ebp
+	jb			.xloop1_U
+
+align 16
+.xdone_U:
+	add			rcx, rdx
+	add			r8, r9
+	sub			ebx, 1
+	ja			.yloop_U
+
+align 16
+.end:
+    pop			rbp
+    pop			rbx
+    ret
+[ENDPROC_FRAME]
+
 
 
 

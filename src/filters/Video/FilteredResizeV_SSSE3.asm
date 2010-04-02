@@ -100,7 +100,7 @@ align 16
 
 	movdqa		xmm7, xmm6						; Accumulator 1a
 	movdqa		xmm1, xmm6						; Accumulator 2a
-	movdqa		xmm15, xmm6						; Accumulator 1a
+	movdqa		xmm15, xmm6						; Accumulator 1b
 	movdqa		xmm9, xmm6						; Accumulator 1b
 	
 %REP %2
@@ -171,8 +171,8 @@ align 16
     packuswb	xmm9, xmm15						; xmm1 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
     
     lea			rdi, [rdx+r9]
-    movntdq		DQWORD [rdx+rax], xmm1			; store calculated pixels in dest[x]  
-    movntdq		DQWORD [rdi+rax], xmm9
+    movdqa		DQWORD [rdx+rax], xmm1			; store calculated pixels in dest[x]  
+    movdqa		DQWORD [rdi+rax], xmm9
     
     add			eax,16							; x+=16
     cmp			eax, ebp						; xloop stored in ebp

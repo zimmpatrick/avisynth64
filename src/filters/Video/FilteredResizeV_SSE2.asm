@@ -4,7 +4,7 @@
 ; Function declarations
 ;=============================================================================
 %ASSIGN y 13
-%REP 21
+%REP 12
 
 	global FRV_aligned_SSE2_FIR %+ y
 	global FRV_unaligned_SSE2_FIR %+ y
@@ -200,7 +200,7 @@ align 16
 section .text
 
 %ASSIGN y 13
-%REP 21
+%REP 12
 
 FRV_memtpye_firsize aligned,y
 ret

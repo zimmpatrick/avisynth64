@@ -76,30 +76,67 @@ align 16
 	lea				r14, [r15+8]					; curr_luma=array+2
 	mov				r10d, DWORD [r14]				; Temporary pointer to Y plane filter-->DWORD @ mem[curr_luma[0]]
 	mov				r12, rcx						; Save a copy of the srcp for destruction
-	mov				ebx, DWORD .orig_width			; Source width is used to copy pixels to a workspace
+	mov				r11d, DWORD .orig_width			; Source width is used to copy pixels to a workspace
 	xor				rax, rax	
+	mov				r13d, r11d
+	and				r13d, 0FFFFFFC0h
+	jz				.yv_deintloop16
 
 align 16
-.yv_deintloop:
+.yv_deintloop64:
 	prefetchnta		[r12+128]
-	movdqa			xmm0, DQWORD [r12+ 0]			; xmm0 = 16xYY
-	movdqa			xmm2, DQWORD [r12+16]			; xmm2 = 16xYY
+	prefetchnta		[r10+rax+256]
+	movdqa			xmm0, DQWORD [r12+ 0]				; xmm0 = 16xYY
+	movdqa			xmm2, DQWORD [r12+16]				; xmm0 = 16xYY
+	movdqa			xmm4, DQWORD [r12+32]				; xmm0 = 16xYY
+	movdqa			xmm6, DQWORD [r12+48]				; xmm0 = 16xYY
+	
 	punpckhbw		xmm1, xmm0						; xmm1 = (Y0 Y0 Y0 Y0) x4
 	punpcklbw		xmm0, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
 	psrlw			xmm1, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
-	punpckhbw		xmm3, xmm2						; xmm3 = (Y0 Y0 Y0 Y0) x4
-	punpcklbw		xmm2, xmm5						; xmm2 = (0Y 0Y 0Y 0Y) x4
-	psrlw			xmm3, 8							; xmm3 = (0Y 0Y 0Y 0Y) x4
+	punpckhbw		xmm3, xmm2						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm2, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm3, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
+	punpckhbw		xmm8, xmm4						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm4, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm8, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
+	punpckhbw		xmm7, xmm6						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm6, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm7, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
 	movdqa			[r10+rax], xmm0					; store base words
 	movdqa			[r10+rax+16], xmm1				; store +16 words
 	movdqa			[r10+rax+32], xmm2				; store +32 words
-	movdqa			[r10+rax+48], xmm3				; store +64 words 
-	add				eax, 64							; offset+=32, we just stored 32 bytes of info
-	add				r12d, 32						; srcp = next 16 bytes
-	sub				r11d, 32						; width-=16 to account for bytes we just moved and unpacked
-	ja				.yv_deintloop					; if not mod 16, could give mem access errors?
+	movdqa			[r10+rax+48], xmm3				; store +64 words
+	movdqa			[r10+rax+64], xmm4				; store base words
+	movdqa			[r10+rax+80], xmm8				; store +16 words
+	movdqa			[r10+rax+96], xmm6				; store +32 words
+	movdqa			[r10+rax+112], xmm7				; store +64 words 
+	add				eax, 128						; offset+=32, we just stored 32 bytes of info
+	add				r12d, 64						; srcp = next 16 bytes
+	sub				r13d, 64						; width-=16 to account for bytes we just moved and unpacked
+	ja				.yv_deintloop64					; if not mod 16, could give mem access errors?
 													; further investigation is needed on above point
-	mov				rax, rdx						; copy the dstp for inner loop  
+	
+	
+	and				r11d, 00000003Fh
+	jz				.yv_xloop_pre
+
+align 16
+.yv_deintloop16:
+	movdqa			xmm0, DQWORD [r12+ 0]				; xmm0 = 16xYY
+	punpckhbw		xmm1, xmm0						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm0, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm1, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
+	movdqa			[r10+rax], xmm0					; store base words
+	movdqa			[r10+rax+16], xmm1				; store base words
+	add				eax, 32
+	add				r12d, 16
+	sub				r11d, 16
+	ja				.yv_deintloop16
+
+align 16
+.yv_xloop_pre:
+	mov				rdi, rdx						; copy the dstp for inner loop  
 	mov				eax, DWORD [r15]				; Size of FIR filter
 	shl				eax, 3							; filter_offset=fir_filter_size_luma*8+8
 	add				eax, 8
@@ -225,30 +262,65 @@ align 16
 	lea				r14, [r15+8]					; curr_luma=array+2
 	mov				r10d, DWORD [r14]				; Temporary pointer to Y plane filter-->DWORD @ mem[curr_luma[0]]
 	mov				r12, rcx						; Save a copy of the srcp for destruction
-	mov				ebx, DWORD .orig_width			; Source width is used to copy pixels to a workspace
-	xor				rax, rax
+	mov				r11d, DWORD .orig_width			; Source width is used to copy pixels to a workspace
+	mov				r13d, r11d
+	and				r13d, 0FFFFFFC0h
+	jz				.yv_deintloop16
 
 align 16
-.yv_deintloop:
+.yv_deintloop64:
 	prefetchnta		[r12+128]
-	movdqu			xmm0, DQWORD [r12+ 0]			; xmm0 = 16xYY
-	movdqu			xmm2, DQWORD [r12+16]			; xmm2 = 16xYY
+	prefetchnta		[r10+rax+256]
+	lddqu			xmm0, DQWORD [r12+ 0]				; xmm0 = 16xYY
+	lddqu			xmm2, DQWORD [r12+16]				; xmm0 = 16xYY
+	lddqu			xmm4, DQWORD [r12+32]				; xmm0 = 16xYY
+	lddqu			xmm6, DQWORD [r12+48]				; xmm0 = 16xYY
 	punpckhbw		xmm1, xmm0						; xmm1 = (Y0 Y0 Y0 Y0) x4
 	punpcklbw		xmm0, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
 	psrlw			xmm1, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
-	punpckhbw		xmm3, xmm2						; xmm3 = (Y0 Y0 Y0 Y0) x4
-	punpcklbw		xmm2, xmm5						; xmm2 = (0Y 0Y 0Y 0Y) x4
-	psrlw			xmm3, 8							; xmm3 = (0Y 0Y 0Y 0Y) x4
+	punpckhbw		xmm3, xmm2						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm2, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm3, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
+	punpckhbw		xmm8, xmm4						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm4, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm8, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
+	punpckhbw		xmm7, xmm6						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm6, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm7, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
 	movdqa			[r10+rax], xmm0					; store base words
 	movdqa			[r10+rax+16], xmm1				; store +16 words
 	movdqa			[r10+rax+32], xmm2				; store +32 words
-	movdqa			[r10+rax+48], xmm3				; store +64 words 
-	add				eax, 64							; offset+=32, we just stored 32 bytes of info
-	add				r12d, 32						; srcp = next 16 bytes
-	sub				r11d, 32						; width-=16 to account for bytes we just moved and unpacked
-	ja				.yv_deintloop					; if not mod 16, could give mem access errors?
+	movdqa			[r10+rax+48], xmm3				; store +64 words
+	movdqa			[r10+rax+64], xmm4					; store base words
+	movdqa			[r10+rax+80], xmm8				; store +16 words
+	movdqa			[r10+rax+96], xmm6				; store +32 words
+	movdqa			[r10+rax+112], xmm7				; store +64 words 
+	add				eax, 128						; offset+=32, we just stored 32 bytes of info
+	add				r12d, 64						; srcp = next 16 bytes
+	sub				r13d, 64						; width-=16 to account for bytes we just moved and unpacked
+	ja				.yv_deintloop64					; if not mod 16, could give mem access errors?
 													; further investigation is needed on above point
-	mov				rax, rdx						; copy the dstp for inner loop  
+	
+	
+	and				r11d, 00000003Fh
+	jz				.yv_xloop_pre
+
+align 16
+.yv_deintloop16:
+	lddqu			xmm0, DQWORD [r12+ 0]				; xmm0 = 16xYY	
+	punpckhbw		xmm1, xmm0						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpcklbw		xmm0, xmm5						; xmm0 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm1, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
+	movdqa			[r10+rax], xmm0					; store base words
+	movdqa			[r10+rax+16], xmm1				; store base words
+	add				eax, 32
+	add				r12d, 16
+	sub				r11d, 16
+	ja				.yv_deintloop16
+
+align 16
+.yv_xloop_pre:
+	mov				rdi, rdx						; copy the dstp for inner loop  
 	mov				eax, DWORD [r15]				; Size of FIR filter
 	shl				eax, 3							; filter_offset=fir_filter_size_luma*8+8
 	add				eax, 8

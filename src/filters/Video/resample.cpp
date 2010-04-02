@@ -68,21 +68,17 @@ AVSFunction Resample_filters[] = {
 };
 
 //arrays for easy assignment of function pointers
-FRV_asm *FRV_aligned_SSE2_array[21] = {	&FRV_aligned_SSE2_FIR13, &FRV_aligned_SSE2_FIR14, &FRV_aligned_SSE2_FIR15, 
+FRV_asm *FRV_aligned_SSE2_array[12] = {	&FRV_aligned_SSE2_FIR13, &FRV_aligned_SSE2_FIR14, &FRV_aligned_SSE2_FIR15, 
 										&FRV_aligned_SSE2_FIR16, &FRV_aligned_SSE2_FIR17, &FRV_aligned_SSE2_FIR18, 
 										&FRV_aligned_SSE2_FIR19, &FRV_aligned_SSE2_FIR20, &FRV_aligned_SSE2_FIR21, 
 										&FRV_aligned_SSE2_FIR22, &FRV_aligned_SSE2_FIR23, &FRV_aligned_SSE2_FIR24,
-										&FRV_aligned_SSE2_FIR25, &FRV_aligned_SSE2_FIR26, &FRV_aligned_SSE2_FIR27, 
-										&FRV_aligned_SSE2_FIR28, &FRV_aligned_SSE2_FIR29, &FRV_aligned_SSE2_FIR30, 
-										&FRV_aligned_SSE2_FIR31, &FRV_aligned_SSE2_FIR32, &FRV_aligned_SSE2_FIR33};
+										};
 
-FRV_asm *FRV_unaligned_SSE2_array[21] = {&FRV_unaligned_SSE2_FIR13, &FRV_unaligned_SSE2_FIR14, &FRV_unaligned_SSE2_FIR15, 
+FRV_asm *FRV_unaligned_SSE2_array[12] = {&FRV_unaligned_SSE2_FIR13, &FRV_unaligned_SSE2_FIR14, &FRV_unaligned_SSE2_FIR15, 
 										&FRV_unaligned_SSE2_FIR16, &FRV_unaligned_SSE2_FIR17, &FRV_unaligned_SSE2_FIR18, 
 										&FRV_unaligned_SSE2_FIR19, &FRV_unaligned_SSE2_FIR20, &FRV_unaligned_SSE2_FIR21, 
-										&FRV_unaligned_SSE2_FIR22, &FRV_unaligned_SSE2_FIR23, &FRV_unaligned_SSE2_FIR24,
-										&FRV_unaligned_SSE2_FIR25, &FRV_unaligned_SSE2_FIR26, &FRV_unaligned_SSE2_FIR27, 
-										&FRV_unaligned_SSE2_FIR28, &FRV_unaligned_SSE2_FIR29, &FRV_unaligned_SSE2_FIR30, 
-										&FRV_unaligned_SSE2_FIR31, &FRV_unaligned_SSE2_FIR32, &FRV_unaligned_SSE2_FIR33};
+										&FRV_unaligned_SSE2_FIR22, &FRV_unaligned_SSE2_FIR23, &FRV_unaligned_SSE2_FIR24
+										};
 
 
 FRV_asm *FRV_aligned_SSSE3_array[11] = {&FRV_aligned_SSSE3_FIR2, &FRV_aligned_SSSE3_FIR3, 
@@ -104,6 +100,18 @@ FRV_asm *FRV_unaligned_SSE3_array[11] = {&FRV_unaligned_SSE3_FIR2, &FRV_unaligne
 										&FRV_unaligned_SSE3_FIR4, &FRV_unaligned_SSE3_FIR5, &FRV_unaligned_SSE3_FIR6, 
 										&FRV_unaligned_SSE3_FIR7, &FRV_unaligned_SSE3_FIR8, &FRV_unaligned_SSE3_FIR9 , 
 										&FRV_unaligned_SSE3_FIR10, &FRV_unaligned_SSE3_FIR11, &FRV_unaligned_SSE3_FIR12};
+
+FRV_asm *FRV_aligned_SSE4_array[12] = {	&FRV_aligned_SSE4_FIR13, &FRV_aligned_SSE4_FIR14, &FRV_aligned_SSE4_FIR15, 
+										&FRV_aligned_SSE4_FIR16, &FRV_aligned_SSE4_FIR17, &FRV_aligned_SSE4_FIR18, 
+										&FRV_aligned_SSE4_FIR19, &FRV_aligned_SSE4_FIR20, &FRV_aligned_SSE4_FIR21, 
+										&FRV_aligned_SSE4_FIR22, &FRV_aligned_SSE4_FIR23, &FRV_aligned_SSE4_FIR24,
+										};
+
+FRV_asm *FRV_unaligned_SSE4_array[12] = {&FRV_unaligned_SSE4_FIR13, &FRV_unaligned_SSE4_FIR14, &FRV_unaligned_SSE4_FIR15, 
+										&FRV_unaligned_SSE4_FIR16, &FRV_unaligned_SSE4_FIR17, &FRV_unaligned_SSE4_FIR18, 
+										&FRV_unaligned_SSE4_FIR19, &FRV_unaligned_SSE4_FIR20, &FRV_unaligned_SSE4_FIR21, 
+										&FRV_unaligned_SSE4_FIR22, &FRV_unaligned_SSE4_FIR23, &FRV_unaligned_SSE4_FIR24,
+										};
 
 FRH_yv12 *FRH_yv12_aligned_array[16] = {&FRH_yv12_aligned_FIR1, &FRH_yv12_aligned_FIR2, &FRH_yv12_aligned_FIR3, &FRH_yv12_aligned_FIR4,
 										&FRH_yv12_aligned_FIR5, &FRH_yv12_aligned_FIR6, &FRH_yv12_aligned_FIR7, &FRH_yv12_aligned_FIR8,
@@ -636,6 +644,38 @@ PVideoFrame __stdcall FilteredResizeH::GetFrame(int n, IScriptEnvironment* env)
 	int dst_pitch = dst->GetPitch();
 	if (vi.IsPlanar()) 
 	{
+		bool unaligned = (((INT_PTR)srcp&15) || (src_pitch&15));
+		int org_width = src->GetRowSize(PLANAR_Y_ALIGNED);
+		int dst_height = dst->GetHeight();
+		int* array = pattern_luma;
+		int dst_width = dst->GetRowSize(PLANAR_Y_ALIGNED);
+
+		unaligned ? yv12_unaligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array) 
+								: yv12_aligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array);
+
+		srcp = src->GetReadPtr(PLANAR_U);
+		dstp = dst->GetWritePtr(PLANAR_U);
+		src_pitch = src->GetPitch(PLANAR_U);
+		dst_pitch = dst->GetPitch(PLANAR_U);
+		unaligned = (((INT_PTR)srcp&15) || (src_pitch&15));
+		org_width = src->GetRowSize(PLANAR_U_ALIGNED);
+		array = pattern_chroma;
+		dst_height = dst->GetHeight(PLANAR_U);
+		dst_width = dst->GetRowSize(PLANAR_U_ALIGNED);
+
+		unaligned ? yv12_unaligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array) 
+								: yv12_aligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array);
+
+		srcp = src->GetReadPtr(PLANAR_V);
+		dstp = dst->GetWritePtr(PLANAR_V);
+		unaligned = (((INT_PTR)srcp&15) || (src_pitch &15));
+
+		unaligned ? yv12_unaligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array) 
+								: yv12_aligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array);
+
+
+
+		/* don't really need a loop at the moment . . . yv12 is the only planar colorspace
 		int plane = 0;
 		//needs to based on case srcp or src pitch is not mod 16
 		while (plane++<3) 
@@ -668,9 +708,9 @@ PVideoFrame __stdcall FilteredResizeH::GetFrame(int n, IScriptEnvironment* env)
 				default: {break;}
 			}
 			
-			(((INT_PTR)srcp&15) || (src_pitch &15)) ? yv12_aligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array) 
-														: yv12_unaligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array);
-		}
+			(((INT_PTR)srcp&15) || (src_pitch &15)) ? yv12_unaligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array) 
+														: yv12_aligned(srcp, dstp, src_pitch, dst_pitch, dst_height, dst_width, org_width, array);
+		}*/
 	}
 	else if (vi.IsYUY2())
 	{
@@ -785,10 +825,20 @@ FilteredResizeV::FilteredResizeV( PClip _child, double subrange_top, double subr
 	}
 	else
 	{
-		a_proc_yplane = FRV_aligned_SSE2_array[fir_size_y - 13];
-		ua_proc_yplane = FRV_unaligned_SSE2_array[fir_size_y - 13];
-		a_proc_uvplane = FRV_aligned_SSE2_array[fir_size_uv - 13];
-		ua_proc_uvplane = FRV_unaligned_SSE2_array[fir_size_uv - 13];
+		if (flags & CPUF_SSE4)
+		{
+			a_proc_yplane = FRV_aligned_SSE4_array[fir_size_y - 13];
+			ua_proc_yplane = FRV_unaligned_SSE4_array[fir_size_y - 13];
+			a_proc_uvplane = FRV_aligned_SSE4_array[fir_size_uv - 13];
+			ua_proc_uvplane = FRV_unaligned_SSE4_array[fir_size_uv - 13];
+		}
+		else
+		{
+			a_proc_yplane = FRV_aligned_SSE2_array[fir_size_y - 13];
+			ua_proc_yplane = FRV_unaligned_SSE2_array[fir_size_y - 13];
+			a_proc_uvplane = FRV_aligned_SSE2_array[fir_size_uv - 13];
+			ua_proc_uvplane = FRV_unaligned_SSE2_array[fir_size_uv - 13];
+		}
 	}
 }
 
@@ -852,6 +902,7 @@ PVideoFrame __stdcall FilteredResizeV::GetFrame(int n, IScriptEnvironment* env)
 				yOfs2 = this->yOfsUV;
 				(((INT_PTR)srcp&15) || (src_pitch &15)) ? ua_proc_uvplane(srcp, dstp, src_pitch, dst_pitch, y, xloops, yOfs2, cur)
 															:a_proc_uvplane(srcp, dstp, src_pitch, dst_pitch, y, xloops, yOfs2, cur);
+				
 			break;
 
 			case 1: // U Plane
