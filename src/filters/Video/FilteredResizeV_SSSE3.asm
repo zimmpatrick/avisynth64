@@ -74,7 +74,7 @@ END_PROLOG
 align 16
 .yloop: 
 	mov			rsi, .intp_yOfs
-	mov			eax, DWORD [r11]				; dereferenced current is this ever negative? (movsxd?)
+	mov			eax, DWORD [r11]				; dereferenced current 
 	mov			r10d, DWORD [rsi+rax*4]			; yOfs[*cur]
 	add			r11, 4							; cur++
 	
@@ -121,7 +121,7 @@ align 16
 	
 	pshufb		xmm3, xmm0						; unpack coefficient to all bytes
 	pshufb		xmm11, xmm0
-	
+		
 	psllw		xmm2, 7							; Extend to signed word
 	psllw		xmm4, 7							; Extend to signed word
 	

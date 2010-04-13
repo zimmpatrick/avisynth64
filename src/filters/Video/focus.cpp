@@ -1413,6 +1413,10 @@ void AFH_YV12_MMX(uc* p, int height, const int pitch, const int row_size, const 
 		mov		[rdx+2],ax
 		mov		[rdx+4],ax
 		mov		[rdx+6],ax
+
+		pxor		mm0,mm0
+		movq		mm7,leftmask
+		mov			r11, rightmask
 	}
 
 	for (int y=0;y<height;y++) 
@@ -1421,27 +1425,25 @@ void AFH_YV12_MMX(uc* p, int height, const int pitch, const int row_size, const 
 		__asm 
 		{
 			mov			rcx,p
-			mov			edi,pitch
-			add			rdi,rcx
-			mov			p,rdi			; p += pitch;
+			mov			r10d,pitch
+			add			r10,rcx
+			mov			p,r10			; p += pitch;
 
-			mov			edi,row_size
-			test		edi,7
+			mov			r10d,row_size
+			test		r10d,7
 			jz			nopad
-			mov			al,[rcx+rdi-1]	; Pad edge pixel if needed
-			mov			[rcx+rdi],al
+			mov			al,[rcx+r10-1]	; Pad edge pixel if needed
+			mov			[rcx+r10],al
 		nopad:
-			add			edi,7
-			shr			edi,3
-
-			pxor		mm0,mm0
+			add			r10d,7
+			shr			r10d,3
 										; first row
 			movq		mm2,[rcx]		; Centre 8 pixels
-			movq		mm1,leftmask	; 0x00000000000000ff
+			movq		mm1,mm7			; 0x00000000000000ff
 			movq		mm3,mm2			; Duplicate for left
 			pand		mm1,mm2			; Left edge pixel
 			psllq		mm3,8			; Left 7 other pixels
-			dec			rdi
+			sub			r10d,1 
 			por			mm1,mm3			; Left pixels, left most repeated
 			jz			out_row_loop_ex	; 8 or less pixels per line
 
@@ -1449,7 +1451,7 @@ void AFH_YV12_MMX(uc* p, int height, const int pitch, const int row_size, const 
 
 			scale(mm1,mm2,mm3,mm4,mm5,mm6,mm0)
 
-			dec			edi
+			sub			r10d,1
 			jz			out_row_loop	; 9 to 16 pixels per line
 
 			align 16
@@ -1461,7 +1463,7 @@ void AFH_YV12_MMX(uc* p, int height, const int pitch, const int row_size, const 
 
 			scale(mm1,mm2,mm3,mm4,mm5,mm6,mm0)
 
-			dec			edi
+			sub			r10d, 1
 			jnz			row_loop		; more ?
 
 		out_row_loop:
@@ -1469,7 +1471,7 @@ void AFH_YV12_MMX(uc* p, int height, const int pitch, const int row_size, const 
 			movq		[rcx-8],mm4		; update current 8 pixels
 			movq		mm2,[rcx]		; Centre 8 pixels
 		out_row_loop_ex:
-			movq		mm3,rightmask	; 0xFF00000000000000
+			movq		mm3,r11			; 0xFF00000000000000
 			movq		mm4,mm2			; Duplicate for right
 			pand		mm3,mm2			; Right edge pixel
 			psrlq		mm4,8			; Right 7 other pixels

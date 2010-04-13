@@ -98,7 +98,7 @@ align 16
 	punpcklbw	xmm2, xmm5						; xmm2=0, xmm2 = *srcp2 = 0h|0g|0f|0e|0d|0c|0b|0a
 	;pshufb		xmm3, xmm0						; unpack coefficient to all bytes-->SSE3 opcode, can be broken into two SSE3 op's as seen below
 	pshuflw		xmm3, xmm3, 00000000b			; fill bottom 64bits with the coefficient
-	punpcklqdq	xmm3, xmm3						; fill register with coefficient
+	movddup		xmm3, xmm3						; fill register with coefficient
 	psllw		xmm2, 7							; Extend to signed word
 	psllw		xmm4, 7							; Extend to signed word
 	%IF (i < (%2 - 1))	

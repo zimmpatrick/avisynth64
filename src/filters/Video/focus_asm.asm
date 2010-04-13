@@ -10,6 +10,8 @@
 	global scenechange_isse_asm
 	global scenechange_sse3_asm
 	
+	global AFH_YV12_ASM
+	
 	
 ;=============================================================================
 ; Read only data
@@ -21,6 +23,45 @@ full:
 add64:
 	dq 00000400000004000h
 	dq 00000400000004000h
+i64_r7:
+	dq 00040004000400040h
+	dq 00040004000400040h
+leftmask:
+	dq 000000000000000FFh
+	dq 000000000000000FFh
+rightmask:
+	dq 0FF00000000000000h
+	dq 0FF00000000000000h
+
+	
+%MACRO scale 7 
+; scale(mmAA,mmBB,mmCC,mmA,mmB,mmC,zeros)
+	movdqa		%6,%3			;  Right 8 pixels      
+	movdqa		%4,%1			;  Left     "          
+	movdqa		%5,%2			;  Centre   "          
+	punpcklbw	%6,%7			;  Low 4 right         
+	punpcklbw	%4,%7			;  Low 4 left          
+	punpcklbw	%5,%7			;  Low 4 centre        
+	paddsw		%4,%6			;  Low 4 left + right  
+	pmullw		%5,xmm14		;  *= centre weight    
+	pmullw		%4,xmm13		;  *= outer weight     
+	punpckhbw	%3,%7			;  High 4 Right        
+	punpckhbw	%1,%7			;  High 4 Left         
+	punpckhbw	%2,%7			;  High 4 Centre       
+	paddsw		%1,%3			;  High 4 left + right 
+	pmullw		%2,xmm14		;  *= centre weight    
+	pmullw		%1,xmm13		;  *= outer weight     
+	paddsw		%4,%5			;  += weighed low 4    
+	paddsw		%1,%2			;  += weighed high 4   
+	paddsw		%4,%5			;  += weighed low 4    
+	paddsw		%1,%2			;  += weighed high 4   
+	paddsw		%4, xmm7		;  += 0.5              
+	paddsw		%1,	xmm7		;  += 0.5              
+	psraw		%4,7			;  /= 128              
+	psraw		%1,7			;  /= 128              
+	add			rcx,16			;  p += 16             
+	packuswb	%4,%1			;  Packed new 8 pixels 
+%ENDMACRO
 
 ;=============================================================================
 ; void accumulate_line_mode2_mmx(const BYTE* c_plane, const BYTE** planeP, int planes, int rowsize, __int64 t, int div) 
@@ -166,37 +207,24 @@ ENDPROC_FRAME
 ; parameter 6(div):			rsp+48
 align 16
 PROC_FRAME accumulate_line_mode2_axmm
-	;push		rbx		; rbx = __int64 t
-	;[pushreg	rbx]
-	;push		rsi		; rsi = __int64 div, derived from param int div
-	;[pushreg	rsi]
 	push		rdi		; rdi copies total planes to be used as a loop counter
 	[pushreg	rdi]
 END_PROLOG
 
 %DEFINE .i64_t	[rsp+8+40]
 %DEFINE .i_div	[rsp+8+48] 
-	
-	;mov			rbx, .i64_t		;can just pass as an arg thanks to 64 bit registers
-	
-	mov			r10d, DWORD .i_div	; despite being declared as an integer, doesn't exceed 16bits 	
-	mov			eax, r10d
-	shl			eax, 16
-	or			r10d, eax
-	;mov			rax, rsi
-	;shl			rax, 32
-	;or			rsi, rax		; div64 = (__int64)(div) | ((__int64)(div)<<16) | ((__int64)(div)<<32) | ((__int64)(div)<<48)
-	xor			eax, eax		; eax will be plane offset (all planes).
+		
+	;movddup		xmm8, .i64_t	; copies a 64 bit value from mem and duplicates it int he upper half 
+	movq		xmm8, .i64_t
+	movlhps		xmm8, xmm8
 	
 	pxor		xmm15,xmm15		; our go to 0 register for unpacking
-	
-	movddup		xmm8, .i64_t
-	;punpcklqdq	xmm8, xmm8		; copy t to upper half
-	
+	xor			eax, eax
+		
 	movdqa		xmm9, [rel full]
 	movdqa		xmm10, [rel add64]
 	
-	movd		xmm11, r10d		; mov in div64
+	movd		xmm11, .i_div				; mov in div64
 	pshufd		xmm11, xmm11,00000000b	; copy div64 to upper half
 
 align 16
@@ -230,12 +258,14 @@ align 16
 	pand		xmm4, xmm2
 	por			xmm4, xmm5
 	movdqa		xmm5, xmm4		;stall (this & below)
+	
+	sub			r10d, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
+	
 	punpcklbw	xmm4, xmm15		; mm4 = lower pixels
 	punpckhbw	xmm5, xmm15		; mm5 = upper pixels
 	paddusw		xmm6, xmm4
 	paddusw		xmm7, xmm5
-
-	sub			r10d, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
+	
 	sub			edi, 1			; planes--
 	ja			.kernel_loop
 	
@@ -246,7 +276,7 @@ align 16
 	punpckhwd	xmm1, xmm15		; low,high
 	movdqa		xmm2, xmm7
 	pmaddwd		xmm0, xmm11		; pmaddwd is used due to it's better rounding.
-	punpcklwd	xmm2, xmm5		; high,low
+	punpcklwd	xmm2, xmm15		; high,low
 	movdqa		xmm3, xmm7
 	paddd		xmm0, xmm10		; add64
 	pmaddwd		xmm1, xmm11		; div64
@@ -282,16 +312,13 @@ align 16
 	
 align 16
 .outloop:
-	;emms
 	pop rdi
-	;pop rsi
-	;pop rbx
 	ret
 	
 ENDPROC_FRAME
 
-;;=============================================================================
-; void accumulate_line_mode2_unaligned_xmm(const BYTE* c_plane, const BYTE** planeP, int planes, int rowsize, __int64 t, int div) 
+;=============================================================================
+; void accumulate_line_mode2_aligned_xmm(const BYTE* c_plane, const BYTE** planeP, int planes, int rowsize, __int64 t, int div) 
 ;=============================================================================
 ; parameter 1(cplane):		rcx
 ; parameter 2(planeP):		rdx
@@ -301,38 +328,27 @@ ENDPROC_FRAME
 ; parameter 6(div):			rsp+48
 align 16
 PROC_FRAME accumulate_line_mode2_uaxmm
-	push		rbx		; rbx = __int64 t
-	[pushreg	rbx]
-	push		rsi		; rsi = __int64 div, derived from param int div
-	[pushreg	rsi]
 	push		rdi		; rdi copies total planes to be used as a loop counter
 	[pushreg	rdi]
 END_PROLOG
 
-%DEFINE .i64_t	[rsp+24+40]
-%DEFINE .i_div	[rsp+24+48] 
+%DEFINE .i64_t	[rsp+8+40]
+%DEFINE .i_div	[rsp+8+48] 
+		
+
 	
-	mov			rbx, .i64_t		;can just pass as an arg thanks to 64 bit registers
-	
-	mov			esi, DWORD .i_div	; despite being declared as an integer, doesn't exceed 16bits 	
-	mov			eax, esi
-	shl			eax, 16
-	or			esi, eax
-	mov			rax, rsi
-	shl			rax, 32
-	or			rsi, rax		; div64 = (__int64)(div) | ((__int64)(div)<<16) | ((__int64)(div)<<32) | ((__int64)(div)<<48)
-	xor			eax, eax		; eax will be plane offset (all planes).
+	;movddup		xmm8, .i64_t	; copies a 64 bit value from mem and duplicates it int he upper half --> SSSE3 instruction :(
+	movq		xmm8, .i64_t
+	movlhps		xmm8, xmm8
 	
 	pxor		xmm15,xmm15		; our go to 0 register for unpacking
-	
-	movq		xmm8, rbx
-	punpcklqdq	xmm8, xmm8		; copy t to upper half
-	
+	xor			eax, eax
+		
 	movdqa		xmm9, [rel full]
 	movdqa		xmm10, [rel add64]
 	
-	movq		xmm11, rsi		; mov in div64
-	punpcklqdq	xmm11, xmm11	; copy div64 to upper half
+	movd		xmm11, .i_div				; mov in div64
+	pshufd		xmm11, xmm11,00000000b	; copy div64 to upper half
 
 align 16
 .testplane:
@@ -370,7 +386,7 @@ align 16
 	paddusw		xmm6, xmm4
 	paddusw		xmm7, xmm5
 
-	sub			r10d, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
+	sub			r10, 8			; changed from 4 to 8 because [rdi]=byte*'s = 8 bytes each
 	sub			edi, 1			; planes--
 	ja			.kernel_loop
 	
@@ -381,7 +397,7 @@ align 16
 	punpckhwd	xmm1, xmm15		; low,high
 	movdqa		xmm2, xmm7
 	pmaddwd		xmm0, xmm11		; pmaddwd is used due to it's better rounding.
-	punpcklwd	xmm2, xmm5		; high,low
+	punpcklwd	xmm2, xmm15		; high,low
 	movdqa		xmm3, xmm7
 	paddd		xmm0, xmm10		; add64
 	pmaddwd		xmm1, xmm11		; div64
@@ -410,17 +426,14 @@ align 16
 	por			xmm0, xmm1
 	por			xmm2, xmm3
 	por			xmm0, xmm2
-	movdqa		[rcx+rax], xmm0	; cplane[offset]=mm0
+	movdqu		[rcx+rax], xmm0	; cplane[offset]=mm0
 	add			eax, 16			; Next 16 pixels
 	cmp			eax, r9d		; cmp row_size with count
 	jle			.testplane
 	
 align 16
 .outloop:
-	emms
 	pop rdi
-	pop rsi
-	pop rbx
 	ret
 	
 ENDPROC_FRAME
@@ -509,27 +522,28 @@ END_PROLOG
 	
 	mov		r10d, DWORD .c_pitch		; r10 = c_pitch
 	mov		r11d, DWORD .t_pitch		; r11 = t_pitch
-	pxor	xmm6, xmm6					; We maintain two sums, for better pairablility
-	pxor	xmm7, xmm7
+
 	test	r9d, 00000003Fh				; test if width is already divisible by 64
 	jz		.noextra					; for precision, we do the first 32 bytes, then start the normal loop
 	
-	xor		eax, eax
-	movdqa	xmm0, [rcx+rax]
-	movdqa	xmm1, [rdx+rax]
-	movdqa	xmm2, [rcx+rax+16]
-	movdqa	xmm3, [rdx+rax+16]
+	movdqa	xmm0, [rcx]
+	movdqa	xmm1, [rdx]
 	psadbw	xmm0, xmm1					; Sum of absolute difference
+	
+	movdqa	xmm2, [rcx+16]
+	movdqa	xmm3, [rdx+16]
 	psadbw	xmm2, xmm3					; Produces two 32bit results, one for top half, one for bottom
-	paddd	xmm6, xmm0					; Add...
-	paddd	xmm7, xmm2
-	add		eax, 32
+	
+	movdqa	xmm6, xmm0					; Add...
+	movdqa	xmm7, xmm2
+	mov		eax, 32
 	and		r9d, 0FFFFFFC0h				; adjust width to be mod 64
 	jmp		.xloop
 
 align 16
 .noextra
-	and		r9d, 0FFFFFFC0h				; adjust width to be mod 64
+	pxor	xmm6, xmm6					; We maintain two sums, for better pairablility
+	pxor	xmm7, xmm7
 	
 align 16
 .yloop:
@@ -537,40 +551,154 @@ align 16
 
 align 16
 .xloop:
+	prefetchnta[rcx+rax+64]
+	prefetchnta[rdx+rax+64]
+	
 	movdqa	xmm0, [rcx+rax]
 	movdqa	xmm1, [rdx+rax]
+	psadbw	xmm0, xmm1					; Sum of absolute difference
 	movdqa	xmm2, [rcx+rax+16]
 	movdqa	xmm3, [rdx+rax+16]
-	psadbw	xmm0, xmm1					; Sum of absolute difference
-	psadbw	xmm2, xmm3					; Produces two 32bit results, one for top half, one for bottom
-	paddd	xmm6, xmm0					; Add...
-	paddd	xmm7, xmm2
+	paddd	xmm6, xmm0
 	
+
+	psadbw	xmm2, xmm3
 	movdqa	xmm8, [rcx+rax+32]
-	movdqa	xmm9, [rdx+rax+32]
+	movdqa	xmm9, [rdx+rax+32]					; Produces two 32bit results, one for top half, one for bottom
+	paddd	xmm7, xmm2 ; Add...
+	
+
+	psadbw	xmm8, xmm9
 	movdqa	xmm10, [rcx+rax+48]
 	movdqa	xmm11, [rdx+rax+48]
-	psadbw	xmm8, xmm9
-	psadbw	xmm10, xmm11
 	paddd	xmm6, xmm8
+	
+	psadbw	xmm10, xmm11
 	paddd	xmm7, xmm10
-
+	
 	add		eax, 64
-	cmp		eax, r9d    
-	jl		.xloop
+	cmp		eax, r9d 
+	jb		.xloop
 	
 	add		rcx, r10					; add pitch to both planes
 	add		rdx, r11
 	sub		r8d, 1		
-	jnz		.yloop
+	ja		.yloop
 
 .end:
 	paddd	xmm7, xmm6
-	movdqa	xmm0, xmm7		; grab 3rd dw-->where 2nd sad value stored
-	psrldq	xmm0, 8
-	movd	ecx, xmm0
+	movhlps	xmm0, xmm7		; grab 3rd dw-->where 2nd sad value stored
 	movd	eax, xmm7
+	movd	ecx, xmm0
 	add		eax, ecx
 	ret
 	
+ENDPROC_FRAME
+
+;=============================================================================
+; void AFH_YV12_ASM(uc* p, int height, const int pitch, const int row_size, const int amount)
+;=============================================================================
+; parameter 1(p):			rcx
+; parameter 2(height):		rdx
+; parameter 3(pitch):		r8d
+; parameter 4(row_size):	r9d 
+; parameter 5(amount):		rsp+40
+PROC_FRAME AFH_YV12_ASM
+
+END_PROLOG
+%DEFINE .amount [rsp+40]
+
+
+; signed word center weight ((amount+0x100)>>9) x4
+	mov			ax, .amount
+	add			ax, 100h
+	sar			ax, 9
+	mov			r10d, eax
+	shl			r10d, 16
+	or			eax, r10d
+	movd		xmm14, eax
+	pshufd		xmm14, xmm14, 00000000b
+	
+	
+
+; signed word outer weight 64-((amount+0x100)>>9) x4
+	mov			r10w, 040h
+	sub			r10w, ax
+	;and			r10d, 0FFFFh
+	mov			eax, r10d
+	shl			eax, 16
+	or			r10d, eax
+	movd		xmm13, r10d
+	pshufd		xmm13, xmm13, 00000000b
+	
+	pxor		xmm15, xmm15
+	
+	movdqa		xmm7, [rel i64_r7]
+	movdqa		xmm8, [rel leftmask]
+	movdqa		xmm9, [rel rightmask]
+	
+align 16
+.xloop:	
+	mov			eax, r9d
+	;test		r9d, 15
+	;jz			.nopad
+	
+	;mov			r10w, [rcx+r9-2]	; Pad edge pixel if needed
+	;mov			[rcx+r9], r10w
+
+align 16
+.nopad:
+	;add			eax, 15
+	shr			eax, 4					; round to multiple of 16
+
+										; first row
+	movdqu		xmm2, [rcx]				; Centre 8 pixels
+	movdqa		xmm1, xmm8				; 0x00000000000000ff
+	movdqa		xmm3, xmm2				; Duplicate for left
+	pand		xmm1, xmm2				; Left edge pixel
+	psllq		xmm3, 8					; Left 7 other pixels
+	sub			eax, 1
+	por			xmm1, xmm3				; Left pixels, left most repeated
+	jz			.out_row_loop_ex		; 8 or less pixels per line
+
+	movdqu		xmm3,[rcx+2]			; Right 8 pixels
+
+	scale xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm15
+
+	sub			eax, 1
+	jz			.out_row_loop			; 9 to 16 pixels per line
+
+align 16
+.row_loop:
+	movdqu		xmm1, [rcx-2]		; Pickup left 8th before it's updated
+	movdqu		[rcx-16], xmm4		; update current 8 pixels
+	movdqu		xmm2, [rcx]			; Centre 8 pixels
+	movdqu		xmm3, [rcx+2]		; Right 8 pixels
+
+	scale xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm15
+
+	sub			eax, 1
+	ja			.row_loop			; more ?
+
+.out_row_loop:
+	movdqu		xmm1, [rcx-2]		; Pickup left 8th before it's updated
+	movdqu		[rcx-16], xmm4		; update current 8 pixels
+	movdqu		xmm2, [rcx]			; Centre 8 pixels
+
+.out_row_loop_ex:
+	movdqa		xmm3, xmm9			; 0xFF00000000000000
+	movdqa		xmm4, xmm2			; Duplicate for right
+	pand		xmm3, xmm2			; Right edge pixel
+	psrlq		xmm4, 8				; Right 7 other pixels
+	por			xmm3, xmm4			; Right pixles, right most repeated
+
+	scale xmm1,xmm2,xmm3,xmm4,xmm5,xmm6,xmm15
+
+	movdqu		[rcx-16], xmm4		; update current 8 pixels
+
+	add			rcx, r8
+	sub			edx, 1
+	ja			.xloop
+	
+	ret
 ENDPROC_FRAME

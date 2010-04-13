@@ -4,7 +4,7 @@
 ; Function declarations
 ;=============================================================================
 %ASSIGN y 13
-%REP 12
+%REP 20
 
 	global FRV_aligned_SSE4_FIR %+ y
 	global FRV_unaligned_SSE4_FIR %+ y
@@ -96,8 +96,8 @@ align 16
 	lea			rsi, [r10+rax]					; rsi = srcp2 = srcp + x
 	lea			rdi, [r12+rax]
 			
-	prefetchnta	[rsi+r8]
-	prefetchnta	[rdi+r8]
+	prefetchnta	[rsi+r8*2]
+	prefetchnta	[rdi+r8*2]
 	%IFIDNI %1, aligned
 		movntdqa	xmm0, DQWORD [rsi]				; xmm0 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
 		movntdqa	xmm8, DQWORD [rdi]
@@ -174,7 +174,6 @@ align 16
 	paddd		xmm12, xmm8						; accumulateDCBA
 
 	pxor		xmm0, xmm0						;
-	;pxor		xmm8, xmm8
 	
 	movdqa		xmm2, xmm1						; xmm2 = Pp|Oo|Nn|Mm|Ll|Kk|Jj|Ii
 	punpcklbw	xmm1, xmm0						; xmm1 = 0L|0l|0K|0k|0J|0j|0I|0i
@@ -293,10 +292,6 @@ align 16
     sub			ebx, 2							; y loop counter
     ja			.yloop
 
-    ;restore previous volatiles
-    ;movdqa		xmm6,[rsp]
-    ;movdqa		xmm7,[rsp+16]
-    ;add			rsp,32
     pop			r12
     pop			rdi
     pop			rsi
@@ -315,7 +310,7 @@ align 16
 section .text
 
 %ASSIGN y 13
-%REP 12
+%REP 20
 
 FRV_memtpye_firsize aligned,y
 ret

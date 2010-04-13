@@ -4,7 +4,7 @@
 ; Function declarations
 ;=============================================================================
 %ASSIGN y 13
-%REP 12
+%REP 20
 
 	global FRV_aligned_SSE2_FIR %+ y
 	global FRV_unaligned_SSE2_FIR %+ y
@@ -52,12 +52,7 @@ PROC_FRAME FRV_ %+ %1 %+ _SSE2_FIR %+ %2
 	[pushreg	rbp]
 	push		rsi
 	[pushreg	rsi]
-	;sub		rsp,32
-	;[allocstack 32]
-	;movdqa		[rsp],xmm6
-	;[savexmm128 xmm6,0]
-	;movdqa		[rsp+16],xmm7
-	;[savexmm128 xmm7,16]
+
 END_PROLOG
 
 %DEFINE .int_yloop	[rsp+24+40] ;two xmm reg saves (+32) and 3 gpr saves (+24)
@@ -103,7 +98,7 @@ align 16
 	%IFIDNI %1, aligned
 		movdqa		xmm2, DQWORD [rsi+r8]			; xmm2 = P|O|N|M|L|K|J|I|H|G|F|E|D|C|B|A
 	%ELSE
-		movdqa		xmm2, DQWORD [rsi+r8]			; xmm2 = P|O|N|M|L|K|J|I|H|G|F|E|D|C|B|A
+		movdqu		xmm2, DQWORD [rsi+r8]			; xmm2 = P|O|N|M|L|K|J|I|H|G|F|E|D|C|B|A
 	%ENDIF						
 	
 	%IF (i*2 < (%2 - 2))
@@ -185,10 +180,7 @@ align 16
     sub			ebx, 1							; y loop counter
     ja			.yloop
 
-    ;restore previous volatiles
-    ;movdqa		xmm6,[rsp]
-    ;movdqa		xmm7,[rsp+16]
-    ;add			rsp,32
+
     pop			rsi
     pop			rbp
     pop			rbx
@@ -200,7 +192,7 @@ align 16
 section .text
 
 %ASSIGN y 13
-%REP 12
+%REP 20
 
 FRV_memtpye_firsize aligned,y
 ret
@@ -264,34 +256,37 @@ align 16
 	prefetchnta	[r10+rax+256]
 	movdqa		xmm0,DQWORD [r10 + rax +   0]
 	movdqa		xmm1,DQWORD [r10 + rax +  16]
-	movdqa		xmm2,DQWORD [r10 + rax +  32]
-	movdqa		xmm3,DQWORD [r10 + rax +  48]
 	movdqa		DQWORD[rdx + rax +   0], xmm0
 	movdqa		DQWORD[rdx + rax +  16], xmm1
+	
+	movdqa		xmm2,DQWORD [r10 + rax +  32]
+	movdqa		xmm3,DQWORD [r10 + rax +  48]
 	movdqa		DQWORD[rdx + rax +  32], xmm2
 	movdqa		DQWORD[rdx + rax +  48], xmm3
 	
-	movdqa		xmm4,DQWORD [r10 + rax +  64]
-	movdqa		xmm5,DQWORD [r10 + rax +  80]
-	movdqa		xmm6,DQWORD [r10 + rax +  96]
-	movdqa		xmm7,DQWORD [r10 + rax + 112]
-	movdqa		DQWORD[rdx + rax +  64], xmm4
-	movdqa		DQWORD[rdx + rax +  80], xmm5
-	movdqa		DQWORD[rdx + rax +  96], xmm6
-	movdqa		DQWORD[rdx + rax + 112], xmm7
-	
 	add			eax, 128
 	cmp			eax, r8d
-	jne			.xloop128
 	
-	cmp			eax, ebp
-	je			.no_remain
+	movdqa		xmm4,DQWORD [r10 + rax-128 +  64]
+	movdqa		xmm5,DQWORD [r10 + rax-128 +  80]
+	movdqa		DQWORD[rdx + rax-128 +  64], xmm4
+	movdqa		DQWORD[rdx + rax-128 +  80], xmm5
+	
+	movdqa		xmm6,DQWORD [r10 + rax-128 +  96]
+	movdqa		xmm7,DQWORD [r10 + rax-128 + 112]
+	movdqa		DQWORD[rdx + rax-128 +  96], xmm6
+	movdqa		DQWORD[rdx + rax-128 + 112], xmm7
+	
+
+	jb			.xloop128
+	
+	test		ebp, 127
+	jz			.no_remain
 				
 
 align 16
 .xloop64_a:
-	mov			r8d, ebp
-	and			r8d, 0FFFFFFC0h
+	test		ebp, 0FFFFFFC0h
 	jz			.xloop_remain
 
 align 16
@@ -299,17 +294,17 @@ align 16
 	prefetchnta	[r10+rax+256]
 	movdqa		xmm0,DQWORD [r10 + rax +  0]
 	movdqa		xmm1,DQWORD [r10 + rax + 16]
-	movdqa		xmm2,DQWORD [r10 + rax + 32]
-	movdqa		xmm3,DQWORD [r10 + rax + 48]
-
 	movdqa		DQWORD[rdx + rax +  0], xmm0
 	movdqa		DQWORD[rdx + rax + 16], xmm1
+	
+	movdqa		xmm2,DQWORD [r10 + rax + 32]
+	movdqa		xmm3,DQWORD [r10 + rax + 48]
 	movdqa		DQWORD[rdx + rax + 32], xmm2
 	movdqa		DQWORD[rdx + rax + 48], xmm3
 	add			eax, 64
 	
-	cmp			eax, ebp
-	je			.no_remain
+	test		ebp, 63
+	jz			.no_remain
 	
 align 16
 .xloop_remain:
@@ -383,33 +378,35 @@ align 16
 	prefetchnta	[r10+rax+256]
 	movdqu		xmm0,DQWORD [r10 + rax +   0]
 	movdqu		xmm1,DQWORD [r10 + rax +  16]
+	movdqu		DQWORD[rdx + rax +   0], xmm0
+	movdqu		DQWORD[rdx + rax +  16], xmm1
+	
 	movdqu		xmm2,DQWORD [r10 + rax +  32]
 	movdqu		xmm3,DQWORD [r10 + rax +  48]
-	movdqa		DQWORD[rdx + rax +   0], xmm0
-	movdqa		DQWORD[rdx + rax +  16], xmm1
-	movdqa		DQWORD[rdx + rax +  32], xmm2
-	movdqa		DQWORD[rdx + rax +  48], xmm3
-	
-	movdqu		xmm4,DQWORD [r10 + rax +  64]
-	movdqu		xmm5,DQWORD [r10 + rax +  80]
-	movdqu		xmm6,DQWORD [r10 + rax +  96]
-	movdqu		xmm7,DQWORD [r10 + rax + 112]
-	movdqa		DQWORD[rdx + rax +  64], xmm4
-	movdqa		DQWORD[rdx + rax +  80], xmm5
-	movdqa		DQWORD[rdx + rax +  96], xmm6
-	movdqa		DQWORD[rdx + rax + 112], xmm7
+	movdqu		DQWORD[rdx + rax +  32], xmm2
+	movdqu		DQWORD[rdx + rax +  48], xmm3
 	
 	add			eax, 128
-	cmp			eax, r8d
-	jne			.xloop128
+	cmp			eax, r8d	
 	
-	cmp			eax, ebp
-	je			.no_remain	
+	movdqu		xmm4,DQWORD [r10 + rax-128 +  64]
+	movdqu		xmm5,DQWORD [r10 + rax-128 +  80]
+	movdqu		DQWORD[rdx + rax-128 +  64], xmm4
+	movdqu		DQWORD[rdx + rax-128 +  80], xmm5
+	
+	movdqu		xmm6,DQWORD [r10 + rax-128 +  96]
+	movdqu		xmm7,DQWORD [r10 + rax-128 + 112]
+	movdqu		DQWORD[rdx + rax-128 +  96], xmm6
+	movdqu		DQWORD[rdx + rax-128 + 112], xmm7
+	
+	jb			.xloop128
+	
+	test		ebp, 127
+	jz			.no_remain	
 
 align 16
 .xloop64_a:
-	mov			r8d, ebp
-	and			r8d, 0FFFFFFC0h
+	test		ebp, 0FFFFFFC0h
 	jz			.xloop_remain
 
 align 16
@@ -417,22 +414,22 @@ align 16
 	prefetchnta	[r10+rax+128]
 	movdqu		xmm0,DQWORD [r10 + rax +  0]
 	movdqu		xmm1,DQWORD [r10 + rax + 16]
+	movdqu		DQWORD[rdx + rax +  0], xmm0
+	movdqu		DQWORD[rdx + rax + 16], xmm1
+	
 	movdqu		xmm2,DQWORD [r10 + rax + 32]
 	movdqu		xmm3,DQWORD [r10 + rax + 48]
-
-	movdqa		DQWORD[rdx + rax +  0], xmm0
-	movdqa		DQWORD[rdx + rax + 16], xmm1
-	movdqa		DQWORD[rdx + rax + 32], xmm2
-	movdqa		DQWORD[rdx + rax + 48], xmm3
+	movdqu		DQWORD[rdx + rax + 32], xmm2
+	movdqu		DQWORD[rdx + rax + 48], xmm3
 	add			eax, 64
 	
-	cmp			eax, ebp
-	je			.no_remain
+	test		ebp, 63
+	jz			.no_remain
 	
 align 16
 .xloop_remain:
 	movdqu		xmm0,DQWORD [r10 + rax]
-	movdqa		DQWORD[rdx + rax], xmm0
+	movntdq		DQWORD[rdx + rax], xmm0
 	add			eax, 16
 	cmp			eax, ebp
 	jb			.xloop_remain
@@ -445,6 +442,7 @@ align 16
 	
     pop			rbp
     pop			rbx
+    sfence
     ret
 [ENDPROC_FRAME]
 	
