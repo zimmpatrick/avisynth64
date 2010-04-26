@@ -63,14 +63,16 @@ END_PROLOG
 	;load the y counter
 	mov				esi, DWORD .dst_height
 	mov				r14, QWORD .pattern_array		; curr_luma=array+2
+	mov				ebp, .dst_width					; set the x counter 
 	add				r14, 8
 	mov				QWORD .pattern_array, r14
+	shr				ebp, 3							; x = dst_width / 8
+	mov				.dst_width, ebp
 
 align 16	
 .yv_yloop:
 	mov				ebp, .dst_width					; set the x counter 
 	mov				r14, QWORD .pattern_array		; curr_luma=array+2
-	shr				ebp, 3							; x = dst_width / 8
 	mov				r10d, DWORD [r14]				; Temporary pointer to Y plane filter-->DWORD @ mem[curr_luma[0]]
 	mov				r12, rcx						; Save a copy of the srcp for destruction
 	mov				r11d, DWORD .orig_width			; Source width is used to copy pixels to a workspace
@@ -320,11 +322,11 @@ align 16
 	movdqa			[r10+rax+32], xmm2				; store +32 words
 	movdqa			[r10+rax+48], xmm3				; store +64 words
 	
-	punpckhbw		xmm8, xmm4						; xmm1 = (Y0 Y0 Y0 Y0) x4
+	punpckhbw		xmm5, xmm4						; xmm1 = (Y0 Y0 Y0 Y0) x4
 	punpcklbw		xmm4, xmm15						; xmm0 = (0Y 0Y 0Y 0Y) x4
-	psrlw			xmm8, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
+	psrlw			xmm5, 8							; xmm1 = (0Y 0Y 0Y 0Y) x4
 	movdqa			[r10+rax+64], xmm4				; store base words
-	movdqa			[r10+rax+80], xmm8				; store +16 words
+	movdqa			[r10+rax+80], xmm5				; store +16 words
 	
 	punpckhbw		xmm7, xmm6						; xmm1 = (Y0 Y0 Y0 Y0) x4
 	punpcklbw		xmm6, xmm15						; xmm0 = (0Y 0Y 0Y 0Y) x4
@@ -337,8 +339,6 @@ align 16
 	sub				r13d, 64						; width-=16 to account for bytes we just moved and unpacked
 	ja				.yv_deintloop64					; if not mod 16, could give mem access errors?
 													; further investigation is needed on above point
-	
-	
 	and				r11d, 00000003Fh
 	jz				.yv_xloop_pre
 
@@ -384,45 +384,81 @@ align 16
 	add				r14, 8							; cur_luma++
 
 	%ASSIGN i 0
-	%REP (%2/2)
-	movq			xmm2, [r10+i*4]					; mm2 =  0| 0|Yb|Ya
-	movq			xmm10, [r11+i*4]
+	%REP (%2 / 2)
+	%IF (i % 2 == 0)
+	movdqu			xmm2, [r10+i*8]					; mm2 =  0| 0|Yb|Ya
+	movdqu			xmm10, [r11+i*8]
+	movdqa			xmm0, xmm2
+		
 	punpckldq		xmm2, xmm10						; mm2 = Yn|Ym|Yb|Ya
+	punpckhdq		xmm0, xmm10						; mm2 = Yn|Ym|Yb|Ya
 	
-	movq			xmm4, [r12+i*4]
-	movq			xmm11, [r13+i*4]
+	movdqu			xmm4, [r12+i*8]
+	movdqu			xmm11, [r13+i*8]
+	movdqa			xmm6, xmm4
+	
 	punpckldq		xmm4, xmm11						; [r14] = COn|COm|COb|COa
-	
+	punpckhdq		xmm6, xmm11
 
-	movdqu			xmm8, [r14+i*8]				;can grab 2 coefficients at once . . .
-	movdqu			xmm9, [r14+(%2*8+8)+i*8]	
+	movdqu			xmm8, [r14+i*16]				;can grab 2 coefficients at once . . .
+	movdqu			xmm9, [r14+(%2*8+8)+i*16]	
+	
 	pmaddwd			xmm2, xmm8						; mm2 = Y1|Y0 (DWORDs)
 	pmaddwd			xmm4, xmm9						; mm4 = Y1|Y0 (DWORDs)
 
 	paddd			xmm1, xmm2						; accumulate
 	paddd			xmm3, xmm4						; accumulate
+	%ELSE
+	movdqu			xmm8, [r14+i*16]				;can grab 2 coefficients at once . . .
+	movdqu			xmm9, [r14+(%2*8+8)+i*16]	
 	
-	;second pair
-	movq			xmm2, [rbx+i*4]					; mm2 =  0| 0|Yb|Ya
-	movq			xmm10, [rdi+i*4]
-	punpckldq		xmm2, xmm10					; mm2 = Yn|Ym|Yb|Ya
-	
-	movq			xmm4, [r8+i*4]
-	movq			xmm11, [r9+i*4]	
-	punpckldq		xmm4, xmm11					; [r14] = COn|COm|COb|COa
-	
+	pmaddwd			xmm0, xmm8						; mm2 = Y1|Y0 (DWORDs)
+	pmaddwd			xmm6, xmm9						; mm4 = Y1|Y0 (DWORDs)
 
-	movdqu			xmm8, [r14+(%2*8+8)*2+i*8]		;can grab 2 coefficients at once . . .
-	movdqu			xmm9, [r14+(%2*8+8)*3+i*8]
+	paddd			xmm1, xmm0						; accumulate
+	paddd			xmm3, xmm6						; accumulate
+	%ENDIF
+	
+	%IF (i % 2 == 0)
+	;second pair
+	movdqu			xmm2, [rbx+i*8]					; mm2 =  0| 0|Yb|Ya
+	movdqu			xmm10, [rdi+i*8]
+	movdqa			xmm12, xmm2
+	
+	punpckldq		xmm2, xmm10					; mm2 = Yn|Ym|Yb|Ya
+	punpckhdq		xmm12, xmm10
+	
+	movdqu			xmm4, [r8+i*8]
+	movdqu			xmm11, [r9+i*8]	
+	movdqa			xmm13, xmm4
+	
+	punpckldq		xmm4, xmm11					; [r14] = COn|COm|COb|COa
+	punpckhdq		xmm13, xmm11
+
+	movdqu			xmm8, [r14+(%2*8+8)*2+i*16]		;can grab 2 coefficients at once . . .
+	movdqu			xmm9, [r14+(%2*8+8)*3+i*16]
+	
 	pmaddwd			xmm2, xmm8					; mm2 = Y1|Y0 (DWORDs)
 	pmaddwd			xmm4, xmm9					; mm4 = Y1|Y0 (DWORDs)
 
 	paddd			xmm5, xmm2					; accumulate
 	paddd			xmm7, xmm4					; accumulate
-	%ASSIGN i i+2
+	%ELSE
+	movdqu			xmm8, [r14+(%2*8+8)*2+i*16]		;can grab 2 coefficients at once . . .
+	movdqu			xmm9, [r14+(%2*8+8)*3+i*16]
+	
+	pmaddwd			xmm12, xmm8					; mm2 = Y1|Y0 (DWORDs)
+	pmaddwd			xmm13, xmm9					; mm4 = Y1|Y0 (DWORDs)
+
+	paddd			xmm5, xmm12					; accumulate
+	paddd			xmm7, xmm13					; accumulate
+	%ENDIF
+	%ASSIGN i i+1
 	%ENDREP
 	
+	
 	%IF((%2 % 2) == 1)
+	%ASSIGN i (%2 - 1)
 	movd			xmm2, [r10+i*4]					; mm2 =  0| 0|Yb|Ya
 	movd			xmm10, [r11+i*4]
 	punpckldq		xmm2, xmm10						; mm2 = Yn|Ym|Yb|Ya
@@ -457,21 +493,17 @@ align 16
 	paddd			xmm7, xmm4					; accumulate
 	%ENDIF
 	
-	movhlps			xmm2, xmm1
-	paddd			xmm1, xmm2
+	movdqa			xmm2, xmm1
+	movdqa			xmm4, xmm5
+	unpckhpd		xmm2, xmm3
+	unpcklpd		xmm1, xmm3
+	paddd 			xmm1, xmm2
 	
-	movhlps			xmm4, xmm3
-	paddd			xmm3, xmm4
+	unpckhpd		xmm4, xmm7
+	unpcklpd		xmm5, xmm7
+	paddd 			xmm5, xmm4
 	
-	movhlps			xmm2, xmm5
-	paddd			xmm5, xmm2
-	
-	movhlps			xmm4, xmm7
-	paddd			xmm7, xmm4
-				
-	movlhps			xmm5, xmm7
-	movlhps			xmm1, xmm3	
-	
+
 	add				r14, (%2*8+8)*3+(%2*8)			; curr_luma += filter_offset
 	psrad			xmm1, 14							; mm1 = --y1|--y0
 	psrad			xmm5, 14							; mm3 = --y3|--y2
@@ -529,4 +561,20 @@ ENDPROC_FRAME
 %ASSIGN y y+1
 %ENDREP
 
+;=============================================================================
+; Just another idea for repacking the pixels at the end of the function, figured I'd hold onto it
+;=============================================================================
+;movhlps			xmm2, xmm1
+;movhlps			xmm4, xmm5
 
+;movlhps			xmm2, xmm3
+;movlhps			xmm4, xmm7
+
+;psrldq				xmm3, 8
+;psrldq				xmm7, 8
+
+;movlhps			xmm1, xmm3
+;paddd				xmm1, xmm2
+
+;movlhps			xmm5, xmm7
+;paddd				xmm5, xmm4

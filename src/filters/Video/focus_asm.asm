@@ -534,7 +534,7 @@ END_PROLOG
 	movdqa	xmm3, [rdx+16]
 	psadbw	xmm2, xmm3					; Produces two 32bit results, one for top half, one for bottom
 	
-	movdqa	xmm6, xmm0					; Add...
+	movdqa 	xmm6, xmm2					; Add...
 	movdqa	xmm7, xmm2
 	mov		eax, 32
 	and		r9d, 0FFFFFFC0h				; adjust width to be mod 64
@@ -544,40 +544,43 @@ align 16
 .noextra
 	pxor	xmm6, xmm6					; We maintain two sums, for better pairablility
 	pxor	xmm7, xmm7
-	
 align 16
 .yloop:
+
 	xor		eax, eax					; Clear (x) width counter
 
 align 16
 .xloop:
-	prefetchnta[rcx+rax+64]
-	prefetchnta[rdx+rax+64]
 	
 	movdqa	xmm0, [rcx+rax]
 	movdqa	xmm1, [rdx+rax]
 	psadbw	xmm0, xmm1					; Sum of absolute difference
+	
 	movdqa	xmm2, [rcx+rax+16]
 	movdqa	xmm3, [rdx+rax+16]
+	
+	prefetchnta	[rdx+rax+64]
+	prefetchnta	[rcx+rax+64]
+	
 	paddd	xmm6, xmm0
 	
-
 	psadbw	xmm2, xmm3
 	movdqa	xmm8, [rcx+rax+32]
 	movdqa	xmm9, [rdx+rax+32]					; Produces two 32bit results, one for top half, one for bottom
 	paddd	xmm7, xmm2 ; Add...
 	
-
 	psadbw	xmm8, xmm9
 	movdqa	xmm10, [rcx+rax+48]
 	movdqa	xmm11, [rdx+rax+48]
 	paddd	xmm6, xmm8
 	
 	psadbw	xmm10, xmm11
-	paddd	xmm7, xmm10
 	
 	add		eax, 64
-	cmp		eax, r9d 
+	cmp		eax, r9d
+	
+	paddd	xmm7, xmm10 
+	
 	jb		.xloop
 	
 	add		rcx, r10					; add pitch to both planes
@@ -587,9 +590,8 @@ align 16
 
 .end:
 	paddd	xmm7, xmm6
-	movhlps	xmm0, xmm7		; grab 3rd dw-->where 2nd sad value stored
-	movd	eax, xmm7
-	movd	ecx, xmm0
+	pextrw	eax, xmm7, 0
+	pextrw	ecx, xmm7, 4
 	add		eax, ecx
 	ret
 	

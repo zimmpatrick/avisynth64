@@ -54,12 +54,21 @@ PROC_FRAME FRV_ %+ %1 %+ _SSSE3_FIR %+ %2
 	[pushreg	rdi]
 	push		r12
 	[pushreg	r12]
+	alloc_stack  0x70
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm9,0x20
+	save_xmm128  xmm10,0x30
+	save_xmm128  xmm11,0x40
+	save_xmm128  xmm12,0x50
+	save_xmm128  xmm15,0x60
+	
 END_PROLOG
 
-%DEFINE .int_yloop	[rsp+40+40] ;two xmm reg saves (+32) and 3 gpr saves (+24)
-%DEFINE .int_xloop	[rsp+40+48]
-%DEFINE .intp_yOfs	[rsp+40+56]
-%DEFINE .intp_cur	[rsp+40+64]
+%DEFINE .int_yloop	[rsp+40+112+40] ;two xmm reg saves (+32) and 3 gpr saves (+24)
+%DEFINE .int_xloop	[rsp+40+112+48]
+%DEFINE .intp_yOfs	[rsp+40+112+56]
+%DEFINE .intp_cur	[rsp+40+112+64]
 
 %ASSIGN i 0
 	
@@ -183,6 +192,16 @@ align 16
     sub			ebx, 2							; y loop counter
     ja			.yloop
 
+
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm9,[rsp+16*2]
+	movdqa		xmm10,[rsp+16*3]
+	movdqa		xmm11,[rsp+16*4]
+	movdqa		xmm12,[rsp+16*5]
+	movdqa		xmm15,[rsp+16*6]
+	add			rsp, 0x70
+	
 	pop			r12
 	pop			rdi
     pop			rsi

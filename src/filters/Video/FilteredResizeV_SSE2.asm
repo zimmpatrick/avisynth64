@@ -65,7 +65,7 @@ END_PROLOG
 	mov			r11, .intp_cur					; load pointer cur, used in loop
 	mov			ebx, DWORD .int_yloop			; load y loop counter
 	mov			ebp, DWORD .int_xloop			; load x counter 
-	movdqa		xmm8, [rel FProundXMM]
+	movdqa		xmm15, [rel FProundXMM]
 
 align 16
 .yloop: 
@@ -87,10 +87,10 @@ align 16
 		movdqu		xmm0, DQWORD [rsi]				; xmm0 = p|o|n|m|l|k|j|i|h|g|f|e|d|c|b|a
 	%ENDIF
 	
-	movdqa		xmm7, xmm8						; Accumulator 1 = rounder
-	movdqa		xmm4, xmm8						; Accumulator 2 = rounder
-	movdqa		xmm5, xmm8						; Accumulator 3 = rounder 
-	movdqa		xmm6, xmm8						; Accumulator 4 = rounder
+	movdqa		xmm7, xmm15						; Accumulator 1 = rounder
+	movdqa		xmm4, xmm15						; Accumulator 2 = rounder
+	movdqa		xmm5, xmm15						; Accumulator 3 = rounder 
+	movdqa		xmm6, xmm15						; Accumulator 4 = rounder
 	
 	%REP (%2/2)
 	movq		xmm3, QWORD [r11+(i*8)]			; 00|00|00|00|xx|[coefficient+1]|xx|[coefficient] 

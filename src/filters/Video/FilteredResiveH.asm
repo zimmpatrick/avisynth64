@@ -781,8 +781,8 @@ align 16
 	mov         r12d, DWORD [r11]
 	lea         r12d, [r12d+r12d*2]			; ebx = ofs = *cur * 3
 	add         r11d, 4						; cur++
-	pxor        mm0, mm0					; btotal, gtotal
-	pxor        mm1, mm1					; rtotal
+	movq        mm0, [rel FPRoundMMX]		; btotal, gtotal
+	movq        mm1, [rel FPRoundMMX]		; atotal, rtotal
 	lea         r11, [r11+r10*4]			; cur += fir_filter_size
 	add         r12, rcx					; r12 = srcp + ofs*3
 	lea         r10d, [r10d+r10d*2]			; rax = a = fir_filter_size*3
@@ -797,8 +797,9 @@ align 16
 	punpcklwd   mm7, mm2					; mm7 = 00|0g|00|0b
 	punpckhwd   mm6, mm2					; mm6 = 00|0x|00|0r
 	movd        mm5, [r11]					; mm5 =    00|co (co = coefficient)
-	packssdw    mm5, mm2
-	punpckldq   mm5, mm5					; mm5 =    co|co
+	pshufw		mm5, mm5, 11001100b
+	;packssdw    mm5, mm2
+	;punpckldq   mm5, mm5	
 	pmaddwd     mm7, mm5					; mm7 =  g*co|b*co
 	pmaddwd     mm6, mm5					; mm6 =  x*co|r*co
 	paddd       mm0, mm7
@@ -877,8 +878,8 @@ align 16
 	mov         r12d, DWORD [r11]
 	shl         r12d, 2						; r12d = ofs = *cur * 4
 	add         r11d, 4						; cur++
-	pxor        mm0, mm0					; btotal, gtotal
-	pxor        mm1, mm1					; atotal, rtotal
+	movq        mm0, [rel FPRoundMMX]		; btotal, gtotal
+	movq        mm1, [rel FPRoundMMX]		; atotal, rtotal
 	lea         r11, [r11+r10*4]			; cur += fir_filter_size
 	add         r12, rcx					; r12 = srcp + ofs*3
 
@@ -892,8 +893,9 @@ align 16
 	punpcklwd   mm7, mm2					; mm7 = 00|0g|00|0b
 	punpckhwd   mm6, mm2					; mm6 = 00|0a|00|0r
 	movd        mm5, [r11]					; mm5 =    00|co (co = coefficient)
-	packssdw    mm5, mm2
-	punpckldq   mm5, mm5					; mm5 =    co|co
+	pshufw		mm5, mm5, 11001100b
+	;packssdw    mm5, mm2
+	;punpckldq   mm5, mm5					; mm5 =    co|co
 	pmaddwd     mm7, mm5					; mm7 =  g*co|b*co
 	pmaddwd     mm6, mm5					; mm6 =  a*co|r*co
 	paddd       mm0, mm7
