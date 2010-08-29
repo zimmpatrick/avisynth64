@@ -45,6 +45,11 @@ PROC_FRAME FRH_yv12_ %+ %1 %+ _FIR %+ %2
 	[pushreg r13]
 	push r14
 	[pushreg r14]
+	
+	alloc_stack  0x30
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
 END_PROLOG
 
 %DEFINE .src_pitch	[rsp+56+24]
@@ -227,6 +232,12 @@ align 16
 	ja				.yv_yloop
 
 .endfunc:
+
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	add			rsp, 0x30
+	
 	pop r14
 	pop r13
 	pop r12
@@ -257,6 +268,18 @@ PROC_FRAME FRH_yv12_ %+ %1 %+ _FIR %+ %2
 	[pushreg r13]
 	push r14
 	[pushreg r14]
+	
+	alloc_stack  0xA0
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
+	save_xmm128  xmm9,0x30
+	save_xmm128  xmm10,0x40
+	save_xmm128  xmm11,0x50
+	save_xmm128  xmm12,0x60
+	save_xmm128  xmm13,0x70
+	save_xmm128  xmm14,0x80
+	save_xmm128  xmm15,0x90
 END_PROLOG
 
 %DEFINE .src_pitch	[rsp+56+24]
@@ -521,6 +544,18 @@ align 16
 	ja				.yv_yloop
 
 .endfunc:
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	movdqa		xmm9,[rsp+16*3]
+	movdqa		xmm10,[rsp+16*4]
+	movdqa		xmm11,[rsp+16*5]
+	movdqa		xmm12,[rsp+16*6]
+	movdqa		xmm13,[rsp+16*7]
+	movdqa		xmm14,[rsp+16*8]
+	movdqa		xmm15,[rsp+16*9]
+	add			rsp, 0xA0
+
 	pop r14
 	pop r13
 	pop r12

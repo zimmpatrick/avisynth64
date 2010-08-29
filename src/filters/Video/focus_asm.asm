@@ -209,6 +209,14 @@ align 16
 PROC_FRAME accumulate_line_mode2_axmm
 	push		rdi		; rdi copies total planes to be used as a loop counter
 	[pushreg	rdi]
+	alloc_stack  0x70
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
+	save_xmm128  xmm9,0x30
+	save_xmm128  xmm10,0x40
+	save_xmm128  xmm11,0x40
+	save_xmm128  xmm15,0x60
 END_PROLOG
 
 %DEFINE .i64_t	[rsp+8+40]
@@ -312,6 +320,15 @@ align 16
 	
 align 16
 .outloop:
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	movdqa		xmm9,[rsp+16*3]
+	movdqa		xmm10,[rsp+16*4]
+	movdqa		xmm11,[rsp+16*5]
+	movdqa		xmm15,[rsp+16*6]
+	add			rsp, 0x70
+
 	pop rdi
 	ret
 	
@@ -330,6 +347,15 @@ align 16
 PROC_FRAME accumulate_line_mode2_uaxmm
 	push		rdi		; rdi copies total planes to be used as a loop counter
 	[pushreg	rdi]
+	
+	alloc_stack  0x70
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm9,0x20
+	save_xmm128  xmm10,0x30
+	save_xmm128  xmm11,0x40
+	save_xmm128  xmm15,0x50
+
 END_PROLOG
 
 %DEFINE .i64_t	[rsp+8+40]
@@ -433,6 +459,15 @@ align 16
 	
 align 16
 .outloop:
+
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm9,[rsp+16*2]
+	movdqa		xmm10,[rsp+16*3]
+	movdqa		xmm11,[rsp+16*4]
+	movdqa		xmm15,[rsp+16*5]
+	add			rsp, 0x60
+	
 	pop rdi
 	ret
 	
@@ -514,6 +549,13 @@ ENDPROC_FRAME
 
 align 16
 PROC_FRAME scenechange_sse3_asm
+	alloc_stack  0x60
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
+	save_xmm128  xmm9,0x30
+	save_xmm128  xmm10,0x40
+	save_xmm128  xmm11,0x50
 
 END_PROLOG
 %DEFINE .c_pitch [rsp+40]
@@ -593,6 +635,15 @@ align 16
 	pextrw	eax, xmm7, 0
 	pextrw	ecx, xmm7, 4
 	add		eax, ecx
+	
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	movdqa		xmm9,[rsp+16*3]
+	movdqa		xmm10,[rsp+16*4]
+	movdqa		xmm11,[rsp+16*5]
+	add			rsp, 0x60
+	
 	ret
 	
 ENDPROC_FRAME
@@ -606,7 +657,13 @@ ENDPROC_FRAME
 ; parameter 4(row_size):	r9d 
 ; parameter 5(amount):		rsp+40
 PROC_FRAME AFH_YV12_ASM
-
+	alloc_stack  0x60
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
+	save_xmm128  xmm9,0x30
+	save_xmm128  xmm14,0x40
+	save_xmm128  xmm15,0x50
 END_PROLOG
 %DEFINE .amount [rsp+40]
 
@@ -701,6 +758,14 @@ align 16
 	add			rcx, r8
 	sub			edx, 1
 	ja			.xloop
+	
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	movdqa		xmm9,[rsp+16*3]
+	movdqa		xmm14,[rsp+16*4]
+	movdqa		xmm15,[rsp+16*5]
+	add			rsp, 0x60
 	
 	ret
 ENDPROC_FRAME

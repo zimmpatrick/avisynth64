@@ -468,6 +468,11 @@ PROC_FRAME FRV_unaligned_SSE4_FIR1
 	[pushreg	rbx]
 	push		rbp
 	[pushreg	rbp]
+	alloc_stack  0x20
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	
+	
 END_PROLOG
 
 %DEFINE .int_yloop	[rsp+16+40] ;two xmm reg saves (+32) and 3 gpr saves (+24)
@@ -557,6 +562,10 @@ align 16
 	add			rdx, r9
 	sub			ebx, 1
 	ja			.yloop
+
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	add			rsp, 0x20
 	
     pop			rbp
     pop			rbx

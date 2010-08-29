@@ -48,6 +48,8 @@ PROC_FRAME FRV_ %+ %1 %+ _SSE3_FIR %+ %2
 	[pushreg	rbp]
 	push		rsi
 	[pushreg	rsi]
+	alloc_stack  0x70
+	save_xmm128  xmm6,0x00
 
 END_PROLOG
 
@@ -144,6 +146,9 @@ align 16
     sub			ebx, 1							; y loop counter
     ja			.yloop
 
+	movdqa		xmm6,[rsp+16*0]					;Restore volatile register
+	add			rsp, 0x10
+	
     pop			rsi
     pop			rbp
     pop			rbx

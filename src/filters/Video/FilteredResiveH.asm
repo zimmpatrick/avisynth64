@@ -54,6 +54,11 @@ PROC_FRAME FRH_yv12_aligned_mmx
 	[pushreg r14]
 	push r15
 	[pushreg r15]
+		
+	alloc_stack  0x30
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
 END_PROLOG
 
 %DEFINE .dst_height [rsp+64+40]
@@ -207,6 +212,12 @@ align 16
 
 .endfunc:
 	emms
+	
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	add			rsp, 0x30
+	
 	pop r15
 	pop r14
 	pop r13
@@ -240,6 +251,11 @@ PROC_FRAME FRH_yv12_unaligned_mmx
 	[pushreg r14]
 	push r15
 	[pushreg r15]
+	
+	alloc_stack  0x30
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
 END_PROLOG
 
 %DEFINE .dst_height [rsp+64+40]
@@ -291,7 +307,7 @@ align 16
 	movdqa			[r10+rax+16], xmm1				; store +16 words
 	movdqa			[r10+rax+32], xmm2				; store +32 words
 	movdqa			[r10+rax+48], xmm3				; store +64 words
-	movdqa			[r10+rax+64], xmm4					; store base words
+	movdqa			[r10+rax+64], xmm4				; store base words
 	movdqa			[r10+rax+80], xmm8				; store +16 words
 	movdqa			[r10+rax+96], xmm6				; store +32 words
 	movdqa			[r10+rax+112], xmm7				; store +64 words 
@@ -391,6 +407,11 @@ align 16
 
 .endfunc:
 	emms
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	add			rsp, 0x30
+	
 	pop r15
 	pop r14
 	pop r13

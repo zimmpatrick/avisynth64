@@ -325,7 +325,7 @@ align 16
 ENDPROC_FRAME
 
 ;=============================================================================
-;void mmx_weigh_plane(BYTE *p1, const BYTE *p2, int p1_pitch, int p2_pitch,int rowsize, int height, int weight, int invweight) 
+;void mmx_weigh_plane(BYTE *p1, const BYTE *p2, int p1_pitch, int p2_pitch, int rowsize, int height, int weight, int invweight) 
 ;=============================================================================
 ; parameter 1(p1): rcx
 ; parameter 2(p2): rdx
@@ -337,72 +337,95 @@ ENDPROC_FRAME
 ; parameter 7(inv_weight): rsp+8+64
 align 16
 PROC_FRAME mmx_weigh_plane
-	push		rbx
-	[pushreg	rbx]
+	alloc_stack  0x30
+	save_xmm128  xmm6,0x00
+	save_xmm128  xmm7,0x10
+	save_xmm128  xmm8,0x20
+
 END_PROLOG
+
+%DEFINE .rowsize [rsp+40]
+%DEFINE .height [rsp+48]
+%DEFINE .weight [rsp+56]
+%DEFINE .invweight [rsp+64]
 	
-	movdqa		xmm5,[rel rounder]
-	pxor		xmm6,xmm6
-	movd		xmm7,[rsp+8+56]	; weight
-	movd		xmm8,[rsp+8+64]
-	punpcklwd	xmm7,xmm8	; invweight
-	punpckldq	xmm7,xmm7		; Weight = weight | (invweight<<16) | (weight<<32) | (invweight<<48);
-	punpckldq	xmm7,xmm7	
-	mov			r10d,[rsp+8+40]	; rowsize
-	xor			rbx, rbx		; ebx = Height counter
-	xor			rax, rax		; eax = inner loop counter
-	mov			r11d,[rsp+8+48]	; height
+
+	movdqa		xmm5, [rel rounder]
+	pxor		xmm6, xmm6
+	movd		xmm7, .weight	; weight
+	movd		xmm8, .invweight
+	xor			eax,  eax		; eax = inner loop counter
+	mov			r10d, .rowsize	; rowsize
+	mov			r11d, .height	; height
+	
+	prefetchnta	[rcx+r8]
+	prefetchnta	[rdx+r9]
+	
+	punpcklwd	xmm7, xmm8		; invweight
+	punpckldq	xmm7, xmm7		; Weight = weight | (invweight<<16) | (weight<<32) | (invweight<<48);
+	punpckldq	xmm7, xmm7	
+
 	test		r10d, r10d
 	jz			.finish
-
+	
+	sub			r10d, 16
+	and			r10d,~15
+	
 align 16
 .yloop:
-	xor			eax, eax
-	cmp			ebx, r11d
-	jge			.finish
-
+	mov			eax, r10d
 align 16
 .testloop:
-	movdqa		xmm0,[rdx+rax]  ; y7y6 y5y4 y3y2 y1y0 img2
-	movdqa		xmm1,[rcx+rax]  ; Y7Y6 Y5Y4 Y3Y2 Y1Y0 IMG1
+	movdqa		xmm0,[rdx+rax]	; y7y6 y5y4 y3y2 y1y0 img2
+	movdqa		xmm1,[rcx+rax]	; Y7Y6 Y5Y4 Y3Y2 Y1Y0 IMG1
+	
 	movdqa		xmm2,xmm0
-	punpcklbw	xmm0,xmm1        ; Y3y3 Y2y2 Y1y1 Y0y0
-	punpckhbw	xmm2,xmm1        ; Y7y7 Y6y6 Y5y5 Y4y4
-	movdqa		xmm1,xmm0        ; Y3y3 Y2y2 Y1y1 Y0y0
-	punpcklbw	xmm0,xmm6        ; 00Y1 00y1 00Y0 00y0
-	movdqa		xmm3,xmm2        ; Y7y7 Y6y6 Y5y5 Y4y4
-	pmaddwd		xmm0,xmm7        ; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
-	punpckhbw	xmm1,xmm6        ; 00Y3 00y3 00Y2 00y2
-	paddd		xmm0,xmm5        ; Add rounder
-	pmaddwd		xmm1,xmm7        ; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
-	punpcklbw	xmm2,xmm6        ; 00Y5 00y5 00Y4 00y4
-	paddd		xmm1,xmm5        ; Add rounder                         
-	psrld		xmm0,15         ; Shift down, so there is no fraction.
-	pmaddwd		xmm2,xmm7        ; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
-	punpckhbw	xmm3,xmm6        ; 00Y7 00y7 00Y6 00y6
-	paddd		xmm2,xmm5        ; Add rounder
-	pmaddwd		xmm3,xmm7        ; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
-	psrld		xmm1,15         ; Shift down, so there is no fraction.
-	paddd		xmm3,xmm5        ; Add rounder                         
+	punpcklbw	xmm0,xmm1		; Y3y3 Y2y2 Y1y1 Y0y0
+	punpckhbw	xmm2,xmm1		; Y7y7 Y6y6 Y5y5 Y4y4
+	
+	movdqa		xmm1,xmm0		; Y3y3 Y2y2 Y1y1 Y0y0
+	punpcklbw	xmm0,xmm6		; 00Y1 00y1 00Y0 00y0
+	movdqa		xmm3,xmm2		; Y7y7 Y6y6 Y5y5 Y4y4
+	pmaddwd		xmm0,xmm7		; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
+	punpckhbw	xmm1,xmm6		; 00Y3 00y3 00Y2 00y2
+	paddd		xmm0,xmm5		; Add rounder
+	pmaddwd		xmm1,xmm7		; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
+	punpcklbw	xmm2,xmm6		; 00Y5 00y5 00Y4 00y4
+	paddd		xmm1,xmm5		; Add rounder                         
+	psrld		xmm0,15			; Shift down, so there is no fraction.
+	pmaddwd		xmm2,xmm7		; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
+	punpckhbw	xmm3,xmm6		; 00Y7 00y7 00Y6 00y6
+	paddd		xmm2,xmm5		; Add rounder
+	pmaddwd		xmm3,xmm7		; Multiply pixels by weights.  pixel = img1*weight + img2*invweight (twice)
+	sub			eax, 16			; schedule here bc pmaddwd is going to have long latency
+	psrld		xmm1,15			; Shift down, so there is no fraction.
+	paddd		xmm3,xmm5		; Add rounder                         
 	psrld		xmm2,15         ; Shift down, so there is no fraction.
 	psrld		xmm3,15         ; Shift down, so there is no fraction.
-	packssdw	xmm0,xmm1        ; 00Y3 00Y2 00Y1 00Y0
-	packssdw	xmm2,xmm3        ; 00Y7 00Y6 00Y5 00Y4
-	add			eax,16
-	packuswb	xmm0,xmm2        ; Y7Y6 Y5Y4 Y3Y2 Y1Y0
-	cmp			r10d, eax
-	movdqa		[rcx+rax-16],xmm0
-	jg			.testloop
+	packssdw	xmm0,xmm1		; 00Y3 00Y2 00Y1 00Y0
+	packssdw	xmm2,xmm3		; 00Y7 00Y6 00Y5 00Y4
+	
+	packuswb	xmm0,xmm2		; Y7Y6 Y5Y4 Y3Y2 Y1Y0
+	
+	movdqa		[rcx+rax+16],xmm0
+	ja			.testloop
+	
+	add			rcx, r8
+	add			rdx, r9
+	sub			r11d, 1
 
-	inc			ebx
-	add			rcx,r8
-	add			rdx,r9
-	jmp			.yloop
+	prefetchnta	[rcx+r8]
+	prefetchnta	[rdx+r9]
+
+	ja			.yloop
 
 align 16
 .finish:
-	emms
-	pop rbx
+	movdqa		xmm6,[rsp+16*0]
+	movdqa		xmm7,[rsp+16*1]
+	movdqa		xmm8,[rsp+16*2]
+	add			rsp, 0x30
+	
 	ret
 ENDPROC_FRAME
 	
@@ -420,9 +443,12 @@ PROC_FRAME isse_avg_plane
 	push	rbx
 	[pushreg rbx]
 END_PROLOG 
-	mov		r10d,[rsp+40]	;rowsize
+%DEFINE .rowsize [rsp+8+40]
+%DEFINE .height [rsp+8+48]
+
+	mov		r10d,.rowsize	;rowsize
 	xor		rbx,rbx			;height counter
-	mov		r11d,[rsp+48]	;height
+	mov		r11d,.height	;height
 	test	r11d, r11d
 	jz		.finish
   
