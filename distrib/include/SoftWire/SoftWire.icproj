@@ -1,30 +1,36 @@
 <?xml version="1.0" encoding="shift_jis"?>
 <VisualStudioProject
 	ProjectType="Intel C++ Project"
-	Version="11.1"
+	Version="12.0"
 	Name="SoftWire"
 	ProjectGUID="{46C95262-83B8-458B-915B-66DF324770A2}"
 	VCNestedProjectGUID="{FB1526EC-7A90-4A2E-B93B-3A080BDDD739}"
-	VCNestedProjectFileName="SoftWire.vcproj">
+	VCNestedProjectFileName="SoftWire.vcproj"
+	>
 	<Configurations>
 		<Configuration
-			Name="Release|x64">
+			Name="Release|x64"
+			>
 			<Tool
 				Name="GeneralTool"
-				InterproceduralOptimization="true"/>
+				InterproceduralOptimization="true"
+			/>
 			<Tool
 				Name="CppCmplrTool"
 				GlobalOptimizations="true"
 				InterproceduralOptimization="1"
 				EnableEnhancedInstructionSet="1000"
 				FloatingPointModel="1000"
-				UseIntelOptimizedHeaders="true"/>
+				UseIntelOptimizedHeaders="true"
+			/>
 		</Configuration>
 		<Configuration
-			Name="Compat|x64">
+			Name="Compat|x64"
+			>
 			<Tool
 				Name="GeneralTool"
-				InterproceduralOptimization="true"/>
+				InterproceduralOptimization="true"
+			/>
 			<Tool
 				Name="CppCmplrTool"
 				Optimization="1000"
@@ -32,7 +38,8 @@
 				InterproceduralOptimization="1"
 				EnableEnhancedInstructionSet="1000"
 				FloatingPointModel="1000"
-				UseIntelOptimizedHeaders="true"/>
+				UseIntelOptimizedHeaders="true"
+			/>
 		</Configuration>
 	</Configurations>
 	<Files/>

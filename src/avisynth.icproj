@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="shift_jis"?>
 <VisualStudioProject
 	ProjectType="Intel C++ Project"
-	Version="11.1"
+	Version="12.0"
 	Name="avisynth"
 	ProjectGUID="{BCFC6F96-733C-46D9-87D3-6D1C773F5708}"
 	VCNestedProjectGUID="{720622E7-2535-4E2C-BA79-57C6D13C7034}"
-	VCNestedProjectFileName="avisynth.vcproj">
+	VCNestedProjectFileName="avisynth.vcproj"
+	>
 	<Configurations>
 		<Configuration
-			Name="Release|x64">
+			Name="Release|x64"
+			>
 			<Tool
 				Name="GeneralTool"
-				InterproceduralOptimization="true"/>
+				InterproceduralOptimization="true"
+			/>
 			<Tool
 				Name="CppCmplrTool"
 				GlobalOptimizations="true"
@@ -22,25 +25,31 @@
 				GenerateAlternateCodePaths="0"
 				Parallelization="false"
 				UseIntelOptimizedHeaders="true"
-				FloatingPointExpressionEvaluation="0"/>
+				FloatingPointExpressionEvaluation="0"
+			/>
 		</Configuration>
 		<Configuration
-			Name="Release_compat|x64">
+			Name="Release_compat|x64"
+			>
 			<Tool
 				Name="GeneralTool"
-				InterproceduralOptimization="true"/>
+				InterproceduralOptimization="true"
+			/>
 			<Tool
 				Name="CppCmplrTool"
 				Optimization="1000"
 				GlobalOptimizations="true"
 				FloatingPointModel="1000"
-				UseIntelOptimizedHeaders="true"/>
+				UseIntelOptimizedHeaders="true"
+			/>
 		</Configuration>
 		<Configuration
-			Name="Compat|x64">
+			Name="Compat|x64"
+			>
 			<Tool
 				Name="GeneralTool"
-				InterproceduralOptimization="true"/>
+				InterproceduralOptimization="true"
+			/>
 			<Tool
 				Name="CppCmplrTool"
 				Optimization="1000"
@@ -51,7 +60,8 @@
 				GenerateAlternateCodePaths="0"
 				Parallelization="false"
 				UseIntelOptimizedHeaders="true"
-				FloatingPointExpressionEvaluation="0"/>
+				FloatingPointExpressionEvaluation="0"
+			/>
 		</Configuration>
 	</Configurations>
 	<Files/>
