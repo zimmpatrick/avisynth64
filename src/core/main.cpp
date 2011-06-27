@@ -638,11 +638,13 @@ bool CAVIFileSynth::DelayInit2() {
 				// store the script's return value (a video clip)
 				if (return_val.IsClip()) 
 				{
+#if TODO
 					if(env->GetMTMode(false)>0&&env->GetMTMode(false)<5)  
 					{
 						return_val=new Distributor(return_val.AsClip(),env);
 						return_val=new CacheMT1(return_val.AsClip(),env);
 					}
+#endif
 					// Allow WAVE_FORMAT_IEEE_FLOAT audio output
 					bool AllowFloatAudio = false;
 
@@ -655,11 +657,12 @@ bool CAVIFileSynth::DelayInit2() {
 
 					filter_graph = return_val.AsClip();
 
+#ifdef TODO
 					if (!AllowFloatAudio) // Ensure samples are int     
 						filter_graph = ConvertAudio::Create(filter_graph, SAMPLE_INT8|SAMPLE_INT16|SAMPLE_INT24|SAMPLE_INT32, SAMPLE_INT16);
 
 					filter_graph = Cache::Create_Cache(AVSValue(filter_graph), 0, env).AsClip();
-					
+#endif			
 					filter_graph->SetCacheHints(CACHE_ALL, 999); // Give the top level cache a big head start!!
 				}
 				else
@@ -854,8 +857,10 @@ bool CAVIFileSynth::DelayInit2() {
 
 
 void CAVIFileSynth::MakeErrorStream(const char* msg) {
-  error_msg = msg;
+#ifdef TODO
+	error_msg = msg;
   filter_graph = Create_MessageClip(msg, vi->width, vi->height, vi->pixel_type, false, 0xFF3333, 0, 0, env);
+#endif
 }
 
 void CAVIFileSynth::Lock() {
@@ -1502,8 +1507,10 @@ STDMETHODIMP CAVIStreamSynth::ReadFormat(LONG lPos, LPVOID lpFormat, LONG *lpcbF
 	if (UseWaveExtensible) {  // Use WAVE_FORMAT_EXTENSIBLE audio output format 
 	  
 	  //Josh: Win7SDK pre-defines these types, if building with older sdk, uncomment these lines
-	  //const GUID KSDATAFORMAT_SUBTYPE_PCM       = {0x00000001, 0x0000, 0x0010, {0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}};
-	  //const GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT= {0x00000003, 0x0000, 0x0010, {0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}};
+#ifndef KSDATAFORMAT_SUBTYPE_PCM
+	  const GUID KSDATAFORMAT_SUBTYPE_PCM       = {0x00000001, 0x0000, 0x0010, {0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}};
+	  const GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT= {0x00000003, 0x0000, 0x0010, {0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71}};
+#endif
 	  WAVEFORMATEXTENSIBLE wfxt;
 
 	  memset(&wfxt, 0, sizeof(wfxt));
