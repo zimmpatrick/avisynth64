@@ -43,6 +43,8 @@
 using std::string;
 
 #include "../internal.h"
+#include "convert/convert.h"
+#include "filters/video/focus.h"
 
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <iostream>
@@ -52,30 +54,253 @@ using namespace boost::interprocess;
 
 #include "IPCMessages.h"
 
-class IPCScriptEnvironment : public IScriptEnvironment
+
+void* VideoFrame::operator new(size_t size) {
+	VideoFrame * data = (VideoFrame*)new BYTE[size];
+	data->refcount = 1;
+	return data;
+}
+
+
+VideoFrame::VideoFrame(VideoFrameBuffer* _vfb, int _offset, int _pitch, int _row_size, int _height)
+  : /*refcount(1),*/ vfb(_vfb), offset(_offset), pitch(_pitch), row_size(_row_size), height(_height),
+    offsetU(_offset),offsetV(_offset),pitchUV(0)  // PitchUV=0 so this doesn't take up additional space
+{
+  InterlockedIncrement(&vfb->refcount);
+}
+
+VideoFrame::VideoFrame(VideoFrameBuffer* _vfb, int _offset, int _pitch, int _row_size, int _height,
+                       int _offsetU, int _offsetV, int _pitchUV)
+  : /*refcount(1),*/ vfb(_vfb), offset(_offset), pitch(_pitch), row_size(_row_size), height(_height),
+    offsetU(_offsetU),offsetV(_offsetV),pitchUV(_pitchUV)
+{
+  InterlockedIncrement(&vfb->refcount);
+}
+
+VideoFrame* VideoFrame::Subframe(int rel_offset, int new_pitch, int new_row_size, int new_height) const {
+    VideoFrame* Retval= new VideoFrame(vfb, offset+rel_offset, new_pitch, new_row_size, new_height);
+	InterlockedDecrement(&Retval->refcount);//This is not threadsafe so filters should use IScriptEnviroment->Subframe instead
+	return Retval;
+}
+
+
+VideoFrame* VideoFrame::Subframe(int rel_offset, int new_pitch, int new_row_size, int new_height,
+                                 int rel_offsetU, int rel_offsetV, int new_pitchUV) const {
+    VideoFrame* Retval= new VideoFrame(vfb, offset+rel_offset, new_pitch, new_row_size, new_height, rel_offsetU+offsetU, rel_offsetV+offsetV, new_pitchUV);
+	InterlockedDecrement(&Retval->refcount);//This is not threadsafe so filters should use IScriptEnviroment->Subframe instead
+	return Retval;
+}
+
+
+VideoFrameBuffer::VideoFrameBuffer() : refcount(1), data(0), data_size(0), sequence_number(0) {}
+
+
+#ifdef _DEBUG  // Add 16 guard bytes front and back -- cache can check them after every GetFrame() call
+VideoFrameBuffer::VideoFrameBuffer(int size) : 
+  refcount(1), 
+  data((new BYTE[size+32])+16), 
+  data_size(data ? size : 0), 
+  sequence_number(0) {
+  InterlockedIncrement(&sequence_number); 
+  int *p=(int *)data;
+  p[-4] = 0xDEADBEAF;
+  p[-3] = 0xDEADBEAF;
+  p[-2] = 0xDEADBEAF;
+  p[-1] = 0xDEADBEAF;
+  p=(int *)(data+size);
+  p[0] = 0xDEADBEAF;
+  p[1] = 0xDEADBEAF;
+  p[2] = 0xDEADBEAF;
+  p[3] = 0xDEADBEAF;
+}
+
+VideoFrameBuffer::~VideoFrameBuffer() {
+//  _ASSERTE(refcount == 0);
+  InterlockedIncrement(&sequence_number); // HACK : Notify any children with a pointer, this buffer has changed!!!
+  if (data) delete[] (BYTE*)(data-16);
+  (BYTE*)data = 0; // and mark it invalid!!
+  (int)data_size = 0;   // and don't forget to set the size to 0 as well!
+}
+
+#else
+
+VideoFrameBuffer::VideoFrameBuffer(int size)
+ : refcount(1), data(new BYTE[size]), data_size(data ? size : 0), sequence_number(0) { InterlockedIncrement(&sequence_number); }
+
+VideoFrameBuffer::~VideoFrameBuffer() {
+//  _ASSERTE(refcount == 0);
+  InterlockedIncrement(&sequence_number); // HACK : Notify any children with a pointer, this buffer has changed!!!
+  if (data) delete[] data;
+  (BYTE*)data = 0; // and mark it invalid!!
+  (int)data_size = 0;   // and don't forget to set the size to 0 as well!
+}
+#endif
+
+
+enum {
+    COLOR_MODE_RGB = 0,
+    COLOR_MODE_YUV
+};
+
+
+class StaticImage : public IClip {
+  const VideoInfo vi;
+  const PVideoFrame frame;
+  bool parity;
+
+public:
+  StaticImage(const VideoInfo& _vi, const PVideoFrame& _frame, bool _parity)
+    : vi(_vi), frame(_frame), parity(_parity) {}
+  PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env) { return frame; }
+  void __stdcall GetAudio(void* buf, __int64 start, __int64 count, IScriptEnvironment* env) {
+    memset(buf, 0, vi.BytesFromAudioSamples(count));
+  }
+  const VideoInfo& __stdcall GetVideoInfo() { return vi; }
+  bool __stdcall GetParity(int n) { return (vi.IsFieldBased() ? (n&1) : false) ^ parity; }
+  void __stdcall SetCacheHints(int cachehints,int frame_range) { };
+};
+
+
+static PVideoFrame CreateBlankFrame(const VideoInfo& vi, int color, int mode, IScriptEnvironment* env) {
+
+  if (!vi.HasVideo()) return 0;
+
+  PVideoFrame frame = env->NewVideoFrame(vi);
+  BYTE* p = frame->GetWritePtr();
+  int size = frame->GetPitch() * frame->GetHeight();
+
+  if (vi.IsPlanar()) {
+    int color_yuv =(mode == COLOR_MODE_YUV) ? color : RGB2YUV(color);
+    int Cval = (color_yuv>>16)&0xff;
+    Cval |= (Cval<<8)|(Cval<<16)|(Cval<<24);
+    for (int i=0; i<size; i+=4)
+      *(unsigned*)(p+i) = Cval;
+    p = frame->GetWritePtr(PLANAR_U);
+    size = frame->GetPitch(PLANAR_U) * frame->GetHeight(PLANAR_U);
+    Cval = (color_yuv>>8)&0xff;
+    Cval |= (Cval<<8)|(Cval<<16)|(Cval<<24);
+    for (int i=0; i<size; i+=4)
+      *(unsigned*)(p+i) = Cval;
+    size = frame->GetPitch(PLANAR_V) * frame->GetHeight(PLANAR_V);
+    p = frame->GetWritePtr(PLANAR_V);
+    Cval = (color_yuv)&0xff;
+    Cval |= (Cval<<8)|(Cval<<16)|(Cval<<24);
+    for (int i=0; i<size; i+=4)
+      *(unsigned*)(p+i) = Cval;
+  } else if (vi.IsYUY2()) {
+    int color_yuv =(mode == COLOR_MODE_YUV) ? color : RGB2YUV(color);
+    unsigned d = ((color_yuv>>16)&255) * 0x010001 + ((color_yuv>>8)&255) * 0x0100 + (color_yuv&255) * 0x01000000;
+    for (int i=0; i<size; i+=4)
+      *(unsigned*)(p+i) = d;
+  } else if (vi.IsRGB24()) {
+    const unsigned char clr0 = (color & 0xFF);
+    const unsigned short clr1 = (color >> 8);
+    const int gr = frame->GetRowSize();
+    const int gp = frame->GetPitch();
+    for (int y=frame->GetHeight();y>0;y--) {
+      for (int i=0; i<gr; i+=3) {
+        p[i] = clr0; *(unsigned __int16*)(p+i+1) = clr1;
+      }
+      p+=gp;
+    }
+  } else if (vi.IsRGB32()) {
+    for (int i=0; i<size; i+=4)
+      *(unsigned*)(p+i) = color;
+  }
+  return frame;
+}
+
+static AVSValue __cdecl Create_BlankClip(IScriptEnvironment* env) {
+  VideoInfo vi;
+  memset(&vi, 0, sizeof(VideoInfo));
+  vi.fps_denominator=1;
+  vi.fps_numerator=24;
+  vi.height=480;
+  vi.pixel_type=VideoInfo::CS_BGR32;
+  vi.num_frames=240;
+  vi.width=640;
+  vi.audio_samples_per_second=44100;
+  vi.nchannels=1;
+  vi.num_audio_samples=44100*10;
+  vi.sample_type=SAMPLE_INT16;
+  vi.SetFieldBased(false);
+  bool parity=false;
+
+  vi.width++; // cheat HasVideo() call for Audio Only clips
+  vi.num_audio_samples = vi.AudioSamplesFromFrames(vi.num_frames);
+  vi.width--;
+
+  int color = 0;
+  int mode = COLOR_MODE_RGB;
+
+  return new StaticImage(vi, CreateBlankFrame(vi, color, mode, env), parity);
+}
+
+
+class ScriptEnvironment : public IScriptEnvironment
 {
 public:
-	IPCScriptEnvironment()
+	ScriptEnvironment(int version)
 	{
-		// Erase previous message queue
-		message_queue::remove("IPCScriptEnvironment");
+		static int refcount = 0;
+		if (refcount++ == 0) // TODO : ThreadSafe
+		{
 
-		//Create a message_queue.
-		mq = new message_queue(create_only  //only create
-			,"IPCScriptEnvironment"			//name
-			,100							//max message number
-			,32								//max message size
-			);
+			// Erase previous message queue
+			message_queue::remove("IPCScriptEnvironmentOut");
+			message_queue::remove("IPCScriptEnvironmentIn");
+
+			//Create a message_queue.
+			mqOut = new message_queue(create_only  //only create
+				,"IPCScriptEnvironmentOut"		//name
+				,100							//max message number
+				,128								//max message size
+				);
+
+			//Create a message_queue.
+			mqIn = new message_queue(create_only  //only create
+				,"IPCScriptEnvironmentIn"		//name
+				,20							//max message number
+				,8192								//max message size
+				);
+		}
+		else
+		{
+			mqOut = new message_queue(
+				open_only        //only create
+				,"IPCScriptEnvironmentOut"  //name
+				);
+
+			mqIn = new message_queue(
+				open_only        //only create
+				,"IPCScriptEnvironmentIn"  //name
+				);
+		}
+
+		CreateScriptEnvironmentMessage msg(version);
+		SendMessage(&msg, sizeof(msg));
+
+		size_t read;
+		unsigned int priotity;
+
+		union data
+		{
+			char buffer[8192];
+			int64 env;
+		} data;
+		mqIn->receive(&data, sizeof(data), read, priotity);
+		env = data.env;
 	}
 
-	~IPCScriptEnvironment()
+	~ScriptEnvironment()
 	{
-		delete mq;
+		delete mqIn;
+		delete mqOut;
 	}
 
 	void __stdcall CheckVersion(int version)
 	{
-		CheckVersionMessage msg(version);
+		CheckVersionMessage msg(env, version);
 		SendMessage(&msg, sizeof(msg));
 	}
 
@@ -114,15 +339,23 @@ public:
 
 	AVSValue __stdcall Invoke(const char* name, const AVSValue args, const char** arg_names=0)
 	{
-		return AVSValue();
+		return Create_BlankClip(this);
 	}
 
 	AVSValue __stdcall GetVar(const char* name)
 	{
-		GetVarMessage msg(name);
+		if (stricmp(name, "last") == 0) return Create_BlankClip(this);
+
+		GetVarMessage msg(env, name);
 		SendMessage(&msg, sizeof(msg));
 
-		return AVSValue();
+		size_t read;
+		unsigned int priotity;
+
+		char buffer[8192];
+		mqIn->receive(buffer, sizeof(buffer), read, priotity);
+
+		return AVSValue(buffer);
 	}
 
 	bool __stdcall SetVar(const char* name, const AVSValue& val)
@@ -149,12 +382,66 @@ public:
 
 	PVideoFrame __stdcall NewVideoFrame(const VideoInfo& vi, int align)
 	{
-		return 0;
+		  // Check requested pixel_type:
+  switch (vi.pixel_type) {
+    case VideoInfo::CS_BGR24:
+    case VideoInfo::CS_BGR32:
+    case VideoInfo::CS_YUY2:
+    case VideoInfo::CS_YV12:
+    case VideoInfo::CS_I420:
+      break;
+    default:
+      ThrowError("Filter Error: Filter attempted to create VideoFrame with invalid pixel_type.");
+  }
+  PVideoFrame retval;
+  // If align is negative, it will be forced, if not it may be made bigger
+  if (vi.IsPlanar()) { // Planar requires different math ;)
+    if (align>=0) {
+      align = max(align,FRAME_ALIGN);
+    }
+    if ((vi.height&1)||(vi.width&1))
+      ThrowError("Filter Error: Attempted to request an YV12 frame that wasn't mod2 in width and height!");
+    retval=NewPlanarVideoFrame(vi.width, vi.height, align, !vi.IsVPlaneFirst());  // If planar, maybe swap U&V
+  } else {
+    if ((vi.width&1)&&(vi.IsYUY2()))
+      ThrowError("Filter Error: Attempted to request an YUY2 frame that wasn't mod2 in width.");
+    if (align<0) {
+      align *= -1;
+    } else {
+      align = max(align,FRAME_ALIGN);
+    }
+    retval=NewVideoFrame(vi.RowSize(), vi.height, align);
+  }
+  InterlockedDecrement(&retval->vfb->refcount);//After the VideoFrame has been assigned to a PVideoFrame it is safe to decrement the refcount (from 2 to 1)
+  InterlockedDecrement(&retval->refcount);
+  return retval;
 	}
+
+
+VideoFrameBuffer* ScriptEnvironment::GetFrameBuffer(int size) {
+	return new VideoFrameBuffer(size);
+}
 
 	PVideoFrame NewVideoFrame(int row_size, int height, int align)
 	{
-		return 0;
+	  const int pitch = (row_size+align-1) / align * align;
+	  const int size = pitch * height;
+	  const int _align = (align < FRAME_ALIGN) ? FRAME_ALIGN : align;
+	  VideoFrameBuffer* vfb = GetFrameBuffer(size+(_align*4));
+	  if (!vfb)
+		ThrowError("NewVideoFrame: Returned 0 image pointer!");
+	#ifdef _DEBUG
+	  {
+		static const BYTE filler[] = { 0x0A, 0x11, 0x0C, 0xA7, 0xED };
+		BYTE* p = vfb->GetWritePtr();
+		BYTE* q = p + vfb->GetDataSize()/5*5;
+		for (; p<q; p+=5) {
+		  p[0]=filler[0]; p[1]=filler[1]; p[2]=filler[2]; p[3]=filler[3]; p[4]=filler[4];
+		}
+	  }
+	#endif
+	  const int offset = (-(INT_PTR)(vfb->GetWritePtr())) & (FRAME_ALIGN-1);  // align first line offset  (alignment is free here!)
+	  return new VideoFrame(vfb, offset, pitch, row_size, height);
 	}
 
 	PVideoFrame NewPlanarVideoFrame(int width, int height, int align, bool U_first)
@@ -230,31 +517,17 @@ public:
 private:
 	void SendMessage(Message * msg, size_t size)
 	{
-		mq->send(msg, size, 0);
+		mqOut->send(msg, size, 0);
 	}
 
 private:
-	message_queue * mq;
+	message_queue * mqOut;
+	message_queue * mqIn;
+	int64 env;
 };
 
 IScriptEnvironment* __stdcall CreateScriptEnvironment(int version) {
-
-	/*try{
-
-	//Send 100 numbers
-	for(int i = 0; i < 100; ++i){
-
-	}
-	}
-	catch(interprocess_exception &ex){
-	std::cout << ex.what() << std::endl;
-	return 0;
-	}
-	*/
-
-	return new IPCScriptEnvironment();
-
-	return 0;
+	return new ScriptEnvironment(version);
 }
 
 void BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height) {

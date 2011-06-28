@@ -15,11 +15,6 @@
 			Name="x64"
 		/>
 	</Platforms>
-	<ToolFiles>
-		<DefaultToolFile
-			FileName="yasm.rules"
-		/>
-	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
@@ -38,9 +33,6 @@
 				Name="VCCustomBuildTool"
 				CommandLine="copy /y &quot;$(OutDir)\$(TargetFileName)&quot; C:\Windows\SysWOW64\$(TargetFileName)&#x0D;&#x0A;"
 				Outputs="C:\Windows\SysWOW64\avisynth32.dll"
-			/>
-			<Tool
-				Name="YASM"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -142,11 +134,6 @@
 				Name="VCCustomBuildTool"
 				CommandLine="copy $(OutDir)/avisynth.dll C:/Windows/System32&#x0D;&#x0A;"
 				Outputs=""
-			/>
-			<Tool
-				Name="YASM"
-				CommandLine="yasm -Xvc -f win64 [AllOptions] [AdditionalOptions] [Inputs]"
-				Debug="true"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -252,10 +239,7 @@
 				AdditionalDependencies=""
 				Outputs=""
 			/>
-			<Tool
-				Name="YASM"
-			/>
-			<Tool
+<Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -366,12 +350,7 @@
 				CommandLine=""
 				AdditionalDependencies=""
 				Outputs=""
-			/>
-			<Tool
-				Name="YASM"
-				Debug="true"
-			/>
-			<Tool
+			/>		<Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -481,11 +460,7 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="YASM"
-			/>
-			<Tool
+			/><Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -546,11 +521,7 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="YASM"
-			/>
-			<Tool
+			/><Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -627,11 +598,7 @@
 				CommandLine=""
 				AdditionalDependencies=""
 				Outputs=""
-			/>
-			<Tool
-				Name="YASM"
-			/>
-			<Tool
+			/><Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -742,12 +709,7 @@
 				CommandLine=""
 				AdditionalDependencies=""
 				Outputs=""
-			/>
-			<Tool
-				Name="YASM"
-				Debug="true"
-			/>
-			<Tool
+			/><Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool

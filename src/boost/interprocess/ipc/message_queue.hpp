@@ -56,8 +56,8 @@ class message_queue
    //!will be "max_msg_size". Throws on error and if the queue was previously created.
    message_queue(create_only_t create_only,
                  const char *name, 
-                 int max_num_msg, 
-                 int max_msg_size,
+                 unsigned int max_num_msg, 
+                 unsigned int max_msg_size,
                  const permissions &perm = permissions());
 
    //!Opens or creates a process shared message queue with name "name". 
@@ -67,8 +67,8 @@ class message_queue
    //!are ignored. Throws on error.
    message_queue(open_or_create_t open_or_create,
                  const char *name, 
-                 int max_num_msg, 
-                 int max_msg_size,
+                 unsigned int max_num_msg, 
+                 unsigned int max_msg_size,
                  const permissions &perm = permissions());
 
    //!Opens a previously created process shared message queue with name "name". 
@@ -164,7 +164,7 @@ class message_queue
 
    //!Returns the needed memory size for the shared message queue.
    //!Never throws
-   static std::size_t get_mem_size(int max_msg_size, int max_num_msg);
+   static std::size_t get_mem_size(unsigned int max_msg_size, unsigned int max_num_msg);
 
    detail::managed_open_or_create_impl<shared_memory_object> m_shmem;
    /// @endcond
@@ -178,7 +178,7 @@ namespace detail {
 class msg_hdr_t 
 {
    public:
-   int		               len;     // Message length
+   unsigned int		       len;     // Message length
    unsigned int            priority;// Message priority
    //!Returns the data buffer associated with this this message
    void * data(){ return this+1; }  //
@@ -234,7 +234,7 @@ class mq_hdr_t
    //!shared memory of the size returned by the function "get_mem_size".
    //!This constructor initializes the needed resources and creates
    //!the internal structures like the priority index. This can throw.*/
-   mq_hdr_t(int max_num_msg, int max_msg_size)
+   mq_hdr_t(unsigned int max_num_msg, unsigned int max_msg_size)
       : m_max_num_msg(max_num_msg), 
          m_max_msg_size(max_msg_size),
          m_cur_num_msg(0)
@@ -280,7 +280,7 @@ class mq_hdr_t
    //!"max_num_size" maximum number of messages and "max_msg_size" maximum 
    //!message size. Never throws.
    static std::size_t get_mem_size
-      (int max_msg_size, int max_num_msg)
+      (unsigned int max_msg_size, unsigned int max_num_msg)
    {
       const std::size_t 
          msg_hdr_align  = detail::alignment_of<detail::msg_hdr_t>::value,
@@ -315,7 +315,7 @@ class mq_hdr_t
       mp_index             = index;
 
       //Initialize the index so each slot points to a preallocated message
-      for(int i = 0; i < m_max_num_msg; ++i){
+      for(unsigned int i = 0; i < m_max_num_msg; ++i){
          index[i] = msg_hdr;
          msg_hdr  = reinterpret_cast<detail::msg_hdr_t*>
                         (reinterpret_cast<char*>(msg_hdr)+r_max_msg_size);
@@ -326,11 +326,11 @@ class mq_hdr_t
    //Pointer to the index
    offset_ptr<msg_hdr_ptr_t>  mp_index;
    //Maximum number of messages of the queue
-   const int          m_max_num_msg;
+   const unsigned int          m_max_num_msg;
    //Maximum size of messages of the queue
-   const int          m_max_msg_size;
+   const unsigned int          m_max_msg_size;
    //Current number of messages
-   int                m_cur_num_msg;
+   unsigned int                m_cur_num_msg;
    //Mutex to protect data structures
    interprocess_mutex         m_mutex;
    //Condition block receivers when there are no messages
@@ -376,13 +376,13 @@ inline message_queue::~message_queue()
 {}
 
 inline std::size_t message_queue::get_mem_size
-   (int max_msg_size, int max_num_msg)
+   (unsigned int max_msg_size, unsigned int max_num_msg)
 {  return detail::mq_hdr_t::get_mem_size(max_msg_size, max_num_msg);   }
 
 inline message_queue::message_queue(create_only_t create_only,
                                     const char *name, 
-                                    int max_num_msg, 
-                                    int max_msg_size,
+                                    unsigned int max_num_msg, 
+                                    unsigned int max_msg_size,
                                     const permissions &perm)
       //Create shared memory and execute functor atomically
    :  m_shmem(create_only, 
@@ -397,8 +397,8 @@ inline message_queue::message_queue(create_only_t create_only,
 
 inline message_queue::message_queue(open_or_create_t open_or_create,
                                     const char *name, 
-                                    int max_num_msg, 
-                                    int max_msg_size,
+                                    unsigned int max_num_msg, 
+                                    unsigned int max_msg_size,
                                     const permissions &perm)
       //Create shared memory and execute functor atomically
    :  m_shmem(open_or_create, 
@@ -495,7 +495,7 @@ inline bool message_queue::do_send(block_t block,
 
       //Copy control data to the free message
       free_msg->priority = priority;
-      free_msg->len      = (int)buffer_size;
+      free_msg->len      = (unsigned int)buffer_size;
 
       //Copy user buffer to the message
       std::memcpy(free_msg->data(), buffer, buffer_size);
