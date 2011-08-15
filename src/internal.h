@@ -53,7 +53,7 @@ enum {MC_LockVFBList            =0xFFFF0005};
 enum {MC_UnlockVFBList          =0xFFFF0006};
 
 #include "core/avisynth.h"
-
+#include "avlib.h"
 
 
 struct AVSFunction {
@@ -71,11 +71,6 @@ PClip Create_MessageClip(const char* message, int width, int height, int pixel_t
 PClip new_Splice(PClip _child1, PClip _child2, bool realign_sound, IScriptEnvironment* env);
 PClip new_SeparateFields(PClip _child, IScriptEnvironment* env);
 PClip new_AssumeFrameBased(PClip _child);
-
-void BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height);
-
-void asm_BitBlt_ISSE(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height);
-void asm_BitBlt_MMX(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height);
 
 long GetCPUFlags();
 
@@ -120,6 +115,23 @@ static __inline BYTE ScaledPixelClip(int i)
 static __inline bool IsClose(int a, int b, unsigned threshold) 
   { return (unsigned(a-b+threshold) <= threshold*2); }
 
+
+// not used here, but useful to other filters
+inline int RGB2YUV(int rgb) 
+{
+  const int cyb = int(0.114*219/255*65536+0.5);
+  const int cyg = int(0.587*219/255*65536+0.5);
+  const int cyr = int(0.299*219/255*65536+0.5);
+
+  // y can't overflow
+  int y = (cyb*(rgb&255) + cyg*((rgb>>8)&255) + cyr*((rgb>>16)&255) + 0x108000) >> 16;
+  int scaled_y = (y - 16) * int(255.0/219.0*65536+0.5);
+  int b_y = ((rgb&255) << 16) - scaled_y;
+  int u = ScaledPixelClip((b_y >> 10) * int(1/2.018*1024+0.5) + 0x800000);
+  int r_y = (rgb & 0xFF0000) - scaled_y;
+  int v = ScaledPixelClip((r_y >> 10) * int(1/1.596*1024+0.5) + 0x800000);
+  return ((y*256+u)*256+v) | (rgb & 0xff000000);
+}
 
 
 

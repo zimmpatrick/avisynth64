@@ -336,7 +336,7 @@ PVideoFrame __stdcall CacheMT::GetFrame(int n, IScriptEnvironment* env)
 { 
   n = min(vi.num_frames-1, max(0,n));  // Inserted to avoid requests beyond framerange.
 
-  __asm {emms} // Protection from rogue filter authors
+  _mm_empty(); // Protection from rogue filter authors
 
   if (h_policy == CACHE_NOTHING) { // don't want a cache. Typically filters that only ever seek forward.
     //__asm mov ebx,ebx  // Hack! prevent compiler from trusting ebx contents across call
@@ -491,11 +491,11 @@ PVideoFrame __stdcall CacheMT::GetFrame(int n, IScriptEnvironment* env)
 	cvf->status=CACHE_ST_BEING_GENERATED;
 
     LeaveCriticalSection(&cs_cache);
-#ifndef _AMD64_
+/*#ifndef _AMD64_
 	__asm mov ebx,ebx  // Hack! prevent compiler from trusting ebx contents across call
 #else
 	__asm mov rbx,rbx  // Hack! is this still needed??
-#endif
+#endif*/
   PVideoFrame result = childGetFrame(n, env);
 
 	RegisterVideoFrame(cvf, result);

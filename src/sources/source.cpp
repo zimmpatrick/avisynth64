@@ -36,7 +36,6 @@
 #include "../stdafx.h"
 
 #include "../internal.h"
-#include "../convert/convert.h"
 #include "../filters/Video/transform.h"
 #include "avi_source.cpp"
 

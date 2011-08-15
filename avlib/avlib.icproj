@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<VisualStudioProject
+	ProjectType="Intel C++ Project"
+	Version="12.0"
+	Name="avlib"
+	ProjectGUID="{9263B352-C178-46AF-BED1-05B4F5FD11B8}"
+	VCNestedProjectGUID="{01FED469-48BD-4315-9602-CDA0F4DADFB5}"
+	VCNestedProjectFileName="avlib.vcproj"
+	>
+	<Configurations/>
+	<Files/>
+</VisualStudioProject>

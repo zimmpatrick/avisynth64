@@ -834,8 +834,8 @@ PVideoFrame __stdcall Limiter::GetFrame(int n, IScriptEnvironment* env)
 			assemblerY.Call();
 			return frame;
 		} 
-		else
 #else
+		else
 		/*{  // If not ISSE
 			for(int y = 0; y < height; y++) 
 			{

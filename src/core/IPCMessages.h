@@ -37,6 +37,12 @@
 #define MSG_CHECKVERSION			1
 #define MSG_GETVAR					2
 #define MSG_CREATESCRIPTENVIRONMENT 3
+#define MSG_SETWORKINGDIRECTORY		4
+#define MSG_SENDBUFFER				5
+#define MSG_INVOKE					6
+#define MSG_SETVAR					7
+#define MSG_VIDEOINFO				8
+#define MSG_GETFRAME				9
 
 typedef __int64 int64;
 
@@ -102,4 +108,136 @@ public:
 private:
 	char name[65];
 	int64 env;
+};
+
+class SetVarMessage : public Message
+{
+public:
+	SetVarMessage(int64 env, const char * name, int64 clip)
+		: Message(MSG_SETVAR), env(env), clip(clip)
+	{
+		size_t size = strlen(name);
+		if (size > 64) throw AvisynthError("Variables must be 64 characters or less");
+
+		strcpy(this->name, name);
+	}
+
+	const char * getName() const { return name; }
+	int64 getScriptEnvironment() const { return env; }
+	int64 getClip() const { return clip; }
+
+private:
+	char name[65];
+	int64 env;
+	int64 clip;
+};
+
+
+class GetVideoInfoMessage : public Message
+{
+public:
+	GetVideoInfoMessage(int64 env, int64 clip)
+		: Message(MSG_VIDEOINFO), env(env), clip(clip)
+	{
+	}
+
+	int64 getScriptEnvironment() const { return env; }
+	int64 getClip() const { return clip; }
+
+private:
+	int64 env;
+	int64 clip;
+};
+
+class GetFrameMessage : public Message
+{
+public:
+	GetFrameMessage(int64 env, int64 clip, int n)
+		: Message(MSG_GETFRAME), env(env), clip(clip), frame(n)
+	{
+	}
+
+	int64 getScriptEnvironment() const { return env; }
+	int64 getClip() const { return clip; }
+	int getFrame() const { return frame; }
+
+private:
+	int64 env;
+	int64 clip;
+	int frame;
+};
+
+
+
+class SetWorkingDirectoryMessage : public Message
+{
+public:
+	SetWorkingDirectoryMessage(int64 env, const char * name)
+		: Message(MSG_SETWORKINGDIRECTORY), env(env)
+	{
+		size_t size = strlen(name);
+		if (size > 260) throw AvisynthError("");
+
+		strcpy(this->name, name);
+	}
+
+	const char * getDirectory() const { return name; }
+	int64 getScriptEnvironment() const { return env; }
+
+private:
+	char name[260];
+	int64 env;
+};
+
+
+class SendBufferMessage : public Message
+{
+public:
+	SendBufferMessage(int64 env, const char * buffer, int size)
+		: Message(MSG_SENDBUFFER), env(env)
+	{
+		this->size = size;
+		if (size > 256) throw AvisynthError("");
+
+		if (size)
+		{
+			memcpy(this->buffer, buffer, size);
+		}
+		else
+		{
+			this->buffer[0] = '\0';
+		}
+	}
+
+	const char * getBuffer() const { return buffer; }
+	int getSize() { return size; }
+	int64 getScriptEnvironment() const { return env; }
+
+private:
+	char buffer[256];
+	int size;
+	int64 env;
+};
+
+
+class InvokeMessage : public Message
+{
+public:
+	InvokeMessage(int64 env, const char * name, int64 clip = 0)
+		: Message(MSG_INVOKE), env(env), clip(clip)
+	{
+		size_t size = strlen(name);
+		if (size > 64) throw AvisynthError("Invoke name must be 64 characters or less");
+
+		strcpy(this->name, name);
+	}
+
+	const char * getName() const { return name; }
+	int64 getScriptEnvironment() const { return env; }
+	int64 getClip() const { return clip; }
+
+private:
+	char name[65];
+	int64 env;
+	int64 clip;
 };

@@ -43,12 +43,13 @@
 using std::string;
 
 #include "../internal.h"
-#include "convert/convert.h"
+//#include "convert/convert.h"
 #include "filters/video/focus.h"
 
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <iostream>
 #include <vector>
+#include <set>
 
 using namespace boost::interprocess;
 
@@ -236,6 +237,26 @@ static AVSValue __cdecl Create_BlankClip(IScriptEnvironment* env) {
   return new StaticImage(vi, CreateBlankFrame(vi, color, mode, env), parity);
 }
 
+class ScriptEnvironment;
+
+class ProxyClip : public IClip {
+public:
+	ProxyClip(int64 clip, ScriptEnvironment* env);
+	virtual ~ProxyClip();
+
+	virtual PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env);
+	virtual bool __stdcall GetParity(int n);
+	virtual void __stdcall GetAudio(void* buf, __int64 start, __int64 count, IScriptEnvironment* env);	
+	virtual void __stdcall SetCacheHints(int cachehints,int frame_range);
+	virtual const VideoInfo& __stdcall GetVideoInfo();
+
+	int64 __stdcall ServerClip();
+
+private:
+	int64 clip;
+	ScriptEnvironment * env;
+	VideoInfo vi;
+};
 
 class ScriptEnvironment : public IScriptEnvironment
 {
@@ -254,14 +275,14 @@ public:
 			mqOut = new message_queue(create_only  //only create
 				,"IPCScriptEnvironmentOut"		//name
 				,100							//max message number
-				,128								//max message size
+				,280								//max message size
 				);
 
 			//Create a message_queue.
 			mqIn = new message_queue(create_only  //only create
 				,"IPCScriptEnvironmentIn"		//name
 				,20							//max message number
-				,8192								//max message size
+				,4194368								//max message size
 				);
 		}
 		else
@@ -280,22 +301,17 @@ public:
 		CreateScriptEnvironmentMessage msg(version);
 		SendMessage(&msg, sizeof(msg));
 
-		size_t read;
-		unsigned int priotity;
-
-		union data
-		{
-			char buffer[8192];
-			int64 env;
-		} data;
-		mqIn->receive(&data, sizeof(data), read, priotity);
-		env = data.env;
+		msg_buffer = malloc(4194368);
+		env = ReadInt64Message();
 	}
 
 	~ScriptEnvironment()
 	{
 		delete mqIn;
 		delete mqOut;
+
+		free(msg_buffer);
+		msg_buffer = 0;
 	}
 
 	void __stdcall CheckVersion(int version)
@@ -311,7 +327,13 @@ public:
 
 	char* __stdcall SaveString(const char* s, int length = -1)
 	{
-		return 0;
+		std::set<const char *, ltstr>::iterator it = mLocalStrings.find(s);
+		if (it != mLocalStrings.end()) return const_cast<char*>(*it);
+
+		char * result = strdup(s);
+		mLocalStrings.insert(result);
+
+		return result;
 	}
 
 	char* __stdcall Sprintf(const char* fmt, ...)
@@ -339,28 +361,58 @@ public:
 
 	AVSValue __stdcall Invoke(const char* name, const AVSValue args, const char** arg_names=0)
 	{
-		return Create_BlankClip(this);
+		if (stricmp(name, "eval") == 0)
+		{
+			const char * buffer = args[0].AsString();
+			int size = strlen(buffer);
+
+			SendBufferMessage bmsg1(env, NULL, 0);
+			SendMessage(&bmsg1, sizeof(bmsg1));
+
+			while(size > 0)
+			{
+				int sent = min(size, 256);
+				SendBufferMessage bmsg(env, buffer, sent);
+				SendMessage(&bmsg, sizeof(bmsg));
+
+				buffer += sent;
+				size -= sent;
+			}
+
+			InvokeMessage msg(env, name);
+			SendMessage(&msg, sizeof(msg));
+			
+			return ReadValue();
+		}
+		else if (stricmp(name, "converttorgb32") == 0)
+		{
+			ProxyClip * clip = static_cast<ProxyClip*>((void*)args.AsClip());
+
+			InvokeMessage msg(env, name, clip->ServerClip());
+			SendMessage(&msg, sizeof(msg));
+			
+			return ReadValue();
+		}
 	}
 
 	AVSValue __stdcall GetVar(const char* name)
 	{
-		if (stricmp(name, "last") == 0) return Create_BlankClip(this);
-
 		GetVarMessage msg(env, name);
 		SendMessage(&msg, sizeof(msg));
 
-		size_t read;
-		unsigned int priotity;
-
-		char buffer[8192];
-		mqIn->receive(buffer, sizeof(buffer), read, priotity);
-
-		return AVSValue(buffer);
+		return ReadValue();
 	}
 
 	bool __stdcall SetVar(const char* name, const AVSValue& val)
 	{
-		return false;
+		ProxyClip * clip = static_cast<ProxyClip*>((void*)val.AsClip());
+
+		SetVarMessage msg(env, name, clip->ServerClip());
+		SendMessage(&msg, sizeof(msg));
+		
+		size_t read;
+		char * buffer = ReadStringMessage(read);
+		return (buffer[0] == 't');
 	}
 
 	bool __stdcall SetGlobalVar(const char* name, const AVSValue& val)
@@ -456,6 +508,7 @@ VideoFrameBuffer* ScriptEnvironment::GetFrameBuffer(int size) {
 
 	void __stdcall BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_size, int height)
 	{
+		::BitBlt(dstp, dst_pitch, srcp, src_pitch, row_size, height);
 	}
 
 	void __stdcall AtExit(IScriptEnvironment::ShutdownFunc function, void* user_data)
@@ -474,7 +527,11 @@ VideoFrameBuffer* ScriptEnvironment::GetFrameBuffer(int size) {
 
 	int __stdcall SetWorkingDir(const char * newdir)
 	{
-		return 0;
+		SetWorkingDirectoryMessage msg(env, newdir);
+		SendMessage(&msg, sizeof(msg));
+
+		int result = ReadIntMessage();
+		return result;
 	}
 
 	void* __stdcall ManageCache(int key, void* data)
@@ -514,16 +571,126 @@ VideoFrameBuffer* ScriptEnvironment::GetFrameBuffer(int size) {
 	{
 	}
 
-private:
-	void SendMessage(Message * msg, size_t size)
+	VideoInfo GetVideoInfo(ProxyClip * clip)
 	{
-		mqOut->send(msg, size, 0);
+		GetVideoInfoMessage msg(env, clip->ServerClip());
+		SendMessage(&msg, sizeof(msg));
+
+		size_t read;
+		VideoInfo vi = *(VideoInfo *)ReadMessage(read);
+		assert(read == sizeof(vi));
+		return vi;
+	}
+
+	PVideoFrame GetFrame(ProxyClip * clip, int n)
+	{
+		VideoInfo vi = clip->GetVideoInfo();
+
+		GetFrameMessage msg(env, clip->ServerClip(), n);
+		SendMessage(&msg, sizeof(msg));
+		
+		size_t read;
+		unsigned int priotity;
+
+		int seq = ReadIntMessage();
+		int size = ReadIntMessage();
+
+		PVideoFrame frame = NewVideoFrame(vi, 0);
+		mqIn->receive(frame->GetWritePtr(), 4194368, read, priotity);
+		assert(read == size);
+		frame->vfb->sequence_number = seq;
+
+		return frame;
+	}
+
+	bool GetParity(ProxyClip * clip, int n)
+	{
+		// TODO
+		return false;
 	}
 
 private:
+	void * ReadMessage(size_t & read)
+	{
+		unsigned int priotity;
+		mqIn->receive(msg_buffer, 4194368, read, priotity);
+		return msg_buffer;
+	}
+
+	char * ReadStringMessage(size_t & read)
+	{
+		return (char *)ReadMessage(read);
+	}
+	
+	int64 ReadInt64Message()
+	{
+		struct Int64Message
+		{
+			int64 data;
+		};
+
+		size_t read;
+		Int64Message * message = (Int64Message *)ReadMessage(read);
+		assert(read == 8);
+		return message->data;
+	}
+
+	int ReadIntMessage()
+	{
+		struct IntMessage
+		{
+			int data;
+		};
+
+		size_t read;
+		IntMessage * message = (IntMessage *)ReadMessage(read);
+		assert(read == 4);
+		return message->data;
+	}
+
+	void SendMessage(Message * msg, size_t size)
+	{
+		char buffer[2048];
+		sprintf(buffer, "Sending message: %s\n", typeid(msg).name());
+		OutputDebugStr(buffer);
+
+		mqOut->send(msg, size, 0);
+	}
+
+
+	AVSValue ReadValue()
+	{
+		size_t read;
+		char * buffer = ReadStringMessage(read);
+		if (buffer[0] == 's')
+		{
+			buffer = ReadStringMessage(read);
+			return AVSValue(buffer);
+		}
+		else if (buffer[0] == 'c')
+		{
+			int64 movie = ReadInt64Message();
+			return AVSValue(new ProxyClip(movie, this));
+		}
+
+		return AVSValue();
+	}
+
+private:
+	struct ltstr
+	{
+	  bool operator()(const char* s1, const char* s2) const
+	  {
+		return strcmp(s1, s2) < 0;
+	  }
+	};
+
 	message_queue * mqOut;
 	message_queue * mqIn;
+	std::map<const char *, int64> mqStringMap;
+	std::set<const char *, ltstr> mLocalStrings;
 	int64 env;
+	void * msg_buffer;
 };
 
 IScriptEnvironment* __stdcall CreateScriptEnvironment(int version) {
@@ -541,4 +708,50 @@ void BitBlt(BYTE* dstp, int dst_pitch, const BYTE* srcp, int src_pitch, int row_
 			srcp += src_pitch;
 		}
 	}
+}
+
+
+
+
+
+ProxyClip::ProxyClip(int64 clip, ScriptEnvironment* env)
+{
+	this->clip = clip;
+	this->env = env;
+}
+
+ProxyClip::~ProxyClip()
+{
+	// release from server
+}
+
+PVideoFrame __stdcall ProxyClip::GetFrame(int n, IScriptEnvironment* env)
+{
+	assert(env == this->env);
+
+	return this->env->GetFrame(this, n);
+}
+
+bool __stdcall ProxyClip::GetParity(int n)
+{
+	return env->GetParity(this, n);
+}
+
+void __stdcall ProxyClip::GetAudio(void* buf, __int64 start, __int64 count, IScriptEnvironment* env)
+{
+}
+	
+void __stdcall ProxyClip::SetCacheHints(int cachehints, int frame_range)
+{
+}
+
+const VideoInfo& __stdcall ProxyClip::GetVideoInfo()
+{
+	vi = env->GetVideoInfo(this);
+	return vi;
+}
+
+int64 __stdcall ProxyClip::ServerClip()
+{
+	return clip;
 }

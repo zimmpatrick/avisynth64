@@ -707,7 +707,7 @@ bool CAVIFileSynth::DelayInit2() {
 			if (szScriptName)
 				delete[] szScriptName;
 			szScriptName = 0;
-			_m_empty();
+			// _m_empty();
 #ifndef _AMD64_
 			_clear87();
 			_control87( fp_state, 0xffffffff );
@@ -719,7 +719,7 @@ bool CAVIFileSynth::DelayInit2() {
 		catch (...) 
 		{
 			_RPT0(1,"DelayInit() caught general exception!\n");
-			_m_empty();
+			// _m_empty();
 
 #ifndef _AMD64_
 			_clear87();
@@ -736,7 +736,7 @@ bool CAVIFileSynth::DelayInit2() {
 		_clear87();
 		_control87( fp_state, 0xffffffff );
 #endif
-		_m_empty();
+		// _m_empty();
 		return (env && filter_graph && vi);
 	 }
 }
@@ -1467,7 +1467,7 @@ HRESULT CAVIStreamSynth::Read2(LONG lStart, LONG lSamples, LPVOID lpBuffer, LONG
 		_clear87();
 		_control87( fp_state, 0xffffffff );
 #endif
-		_m_empty();
+		// _m_empty();
 		return E_FAIL;
 	}
 #endif
@@ -1476,7 +1476,7 @@ HRESULT CAVIStreamSynth::Read2(LONG lStart, LONG lSamples, LPVOID lpBuffer, LONG
 	_clear87();
 	_control87( fp_state, 0xffffffff );
 #endif
-	_m_empty();
+	// _m_empty();
 	return S_OK;
 }
 

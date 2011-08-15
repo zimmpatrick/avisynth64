@@ -282,7 +282,7 @@ PVideoFrame __stdcall Cache::GetFrame(int n, IScriptEnvironment* env)
 
   n = min(vi.num_frames-1, max(0,n));  // Inserted to avoid requests beyond framerange.
 
-  __asm {emms} // Protection from rogue filter authors
+  _mm_empty(); // Protection from rogue filter authors
 
 //should filters should be allowed to just go "forward"?-->we want to use our scripts with any NLE, which means jumping around
 //what's the harm in a little extra memory in case other filters want to use the frames of the script anyway?
